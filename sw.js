@@ -5,7 +5,7 @@
 var CACHE = 'gate-v6';
 var SHELL = [
   './', 'index.html', 'event.json', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png',
-  'lib/common.js', 'lib/jsQR.js', 'lib/xlsx.mini.min.js', 'lib/qrcode.js', 'lib/fonts.css',
+  'lib/common.js?v=6', 'lib/jsQR.js', 'lib/xlsx.mini.min.js', 'lib/qrcode.js', 'lib/fonts.css',
   'lib/fonts/cairo-arabic-400-normal.woff2', 'lib/fonts/cairo-arabic-700-normal.woff2',
   'lib/fonts/cairo-latin-400-normal.woff2', 'lib/fonts/cairo-latin-700-normal.woff2'
 ];
