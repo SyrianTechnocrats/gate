@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="icon-180.png">
+<link rel="stylesheet" href="lib/fonts.css">
+<title>إدارة بوابة الحضور</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--ink:#0f172a;--mut:#64748b;--line:#e2e8f0;--pri:#2563eb;--pri2:#dbeafe;--ok:#16a34a;--warn:#d97706;--err:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font-family:Cairo,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+header{background:#0f172a;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+header h1{font-size:18px;margin:0;flex:1;min-width:200px}
+header h1 small{display:block;font-size:12px;font-weight:400;opacity:.75}
+.pill{border-radius:999px;padding:3px 12px;font-size:13px;font-weight:700;background:rgba(255,255,255,.15)}
+.pill.dirty{background:#f59e0b;color:#111}
+.tabs{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--line);padding:0 12px;overflow-x:auto;position:sticky;top:56px;z-index:9}
+.tabs button{border:0;background:none;font:inherit;padding:12px 14px;color:var(--mut);border-bottom:3px solid transparent;white-space:nowrap;cursor:pointer}
+.tabs button.on{color:var(--pri);border-bottom-color:var(--pri);font-weight:700}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;background:#fff;color:var(--ink)}
+textarea{min-height:120px;resize:vertical}
+input[type=color]{padding:2px;height:38px}
+input[type=checkbox]{width:auto}
+.btn{font:inherit;border:0;border-radius:10px;padding:9px 14px;background:var(--pri);color:#fff;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.sec{background:#e2e8f0;color:var(--ink)}
+.btn.red{background:var(--err)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+.mut{color:var(--mut);font-size:13px}
+.note{background:var(--pri2);border:1px solid #bfdbfe;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.warnbox{background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.errbox{background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid var(--line);padding:6px;text-align:right;vertical-align:middle}
+th{font-size:13px;color:var(--mut);font-weight:700;position:sticky;top:0;background:#fff}
+td input,td select{padding:5px 8px;font-size:14px}
+.tblwrap{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;color:#fff}
+.counts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.counts span{background:#f8fafc;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px}
+.ed{display:grid;grid-template-columns:minmax(260px,440px) 1fr;gap:16px;align-items:start}
+@media (max-width:820px){.ed{grid-template-columns:1fr}}
+#stage{position:relative;direction:ltr;background:repeating-conic-gradient(#e2e8f0 0 25%,#f8fafc 0 50%) 0 0/16px 16px;border-radius:10px;overflow:hidden;user-select:none;touch-action:none}
+#pv{display:block;width:100%}
+#ovl{position:absolute;inset:0}
+.trim{position:absolute;border:1px dashed rgba(220,38,38,.8);pointer-events:none}
+.fbox{position:absolute;border:2px dashed rgba(37,99,235,.9);background:rgba(37,99,235,.08);cursor:move}
+.fbox.sel{border-style:solid;background:rgba(37,99,235,.16)}
+.fbox .lb{position:absolute;top:-1px;left:-1px;background:#2563eb;color:#fff;font-size:11px;padding:0 5px;border-radius:0 0 6px 0;direction:rtl;white-space:nowrap}
+.fbox .h{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:#2563eb;border:2px solid #fff;border-radius:50%;cursor:nwse-resize}
+.flist button{margin:0 0 6px 6px}
+.pgtabs button{margin-left:6px}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.thumbs figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:10px;padding:6px;text-align:center;font-size:12px}
+.thumbs img{max-width:100%;border-radius:4px}
+progress{width:100%;height:14px}
+.sent{color:var(--ok);font-weight:700}
+dialog{border:0;border-radius:14px;padding:18px;max-width:520px;width:92%}
+dialog::backdrop{background:rgba(15,23,42,.5)}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 16px;border-radius:10px;z-index:50;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="htitle">إدارة بوابة الحضور<small id="hsub"></small></h1>
+  <span class="pill" id="dirty"></span>
+  <a class="btn sec sm" href="./" target="_blank" rel="noopener">فتح تطبيق المسح</a>
+</header>
+<nav class="tabs" id="tabs">
+  <button class="on" data-t="event">الفعالية</button>
+  <button data-t="people">الأسماء</button>
+  <button data-t="design">التصميم</button>
+  <button data-t="badges">البطاقات والطباعة</button>
+  <button data-t="send">الإرسال</button>
+  <button data-t="publish">النشر</button>
+</nav>
+<div class="wrap">
+
+<!-- ================= EVENT ================= -->
+<section class="tab on" id="t-event">
+  <div class="card">
+    <h2>بيانات الفعالية</h2>
+    <div class="grid">
+      <div><label>اسم الفعالية</label><input id="evName"></div>
+      <div><label>الجهة المنظمة</label><input id="evOrg"></div>
+      <div><label>رمز الفعالية (أحرف لاتينية كبيرة وأرقام)</label><input id="evCode" dir="ltr" maxlength="16"></div>
+      <div><label>مهلة تجاهل المسح المكرر (ثانية)</label><input id="evCool" type="number" min="0" max="600"></div>
+      <div><label>ما يُرسل للمدعوين</label><select id="evLabel"><option value="الدعوة">دعوة</option><option value="البطاقة">بطاقة</option></select></div>
+    </div>
+    <p class="mut">رمز الفعالية يُكتب داخل كل رمز استجابة؛ أي بطاقة من فعالية برمز مختلف تُرفض عند الباب، وتبدأ هواتف المسح سجلاً جديداً تلقائياً عند تغييره.</p>
+    <label>أيام الفعالية</label>
+    <div class="row" id="daysBox"></div>
+    <div class="row" style="margin-top:8px"><input type="date" id="dayNew" style="max-width:200px"><button class="btn sec sm" id="dayAdd">إضافة يوم</button></div>
+  </div>
+
+  <div class="card">
+    <h2>مقاس البطاقة</h2>
+    <div class="grid">
+      <div><label>العرض (مم)</label><input id="bW" type="number" step="0.5" min="20" max="300"></div>
+      <div><label>الارتفاع (مم)</label><input id="bH" type="number" step="0.5" min="20" max="300"></div>
+      <div><label>النزف حول البطاقة (مم)</label><input id="bB" type="number" step="0.5" min="0" max="10"></div>
+    </div>
+    <p class="mut">ملف التصميم يجب أن يغطي البطاقة مع النزف من كل جهة. مثال: بطاقة ٥٠ × ٨٥ مع نزف ٣ ← تصميم ٥٦ × ٩١ مم.</p>
+  </div>
+
+  <div class="card">
+    <h2>الفئات</h2>
+    <div class="tblwrap" style="max-height:none"><table><thead><tr><th>الاسم</th><th>اللون</th><th>حرف المعرّف</th><th>عدد الأسماء</th><th></th></tr></thead><tbody id="catBody"></tbody></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn sec sm" id="catAdd">إضافة فئة</button></div>
+  </div>
+
+  <div class="card">
+    <h2>ألوان الاسم المتاحة</h2>
+    <p class="mut">تظهر عموداً في قائمة الأسماء لاختيار لون اسم كل شخص. من لا يُحدَّد له لون يأخذ لون التصميم.</p>
+    <div id="ncBox"></div>
+    <div class="row" style="margin-top:10px"><button class="btn sec sm" id="ncAdd">إضافة لون</button></div>
+  </div>
+
+  <div class="card">
+    <h2>المزامنة مع جدول جوجل (اختياري)</h2>
+    <label>رابط سكربت المزامنة</label>
+    <input id="evSync" dir="ltr" placeholder="https://script.google.com/macros/s/…/exec">
+    <p class="mut">إن تُرك فارغاً تبقى السجلات على الهواتف وتُصدَّر يدوياً.</p>
+  </div>
+
+  <div class="card">
+    <h2>فعالية جديدة</h2>
+    <p class="mut">يبدأ فعالية جديدة برمز جديد: تُبطَل البطاقات السابقة، وتبدأ الهواتف سجلاً نظيفاً بعد النشر.</p>
+    <button class="btn red" id="newEvent">بدء فعالية جديدة…</button>
+  </div>
+</section>
+
+<!-- ================= PEOPLE ================= -->
+<section class="tab" id="t-people">
+  <div class="card">
+    <h2>استيراد من ملف إكسل</h2>
+    <p class="mut">الأعمدة المقروءة تلقائياً: الاسم، الفئة، اللون (أبيض أو أزرق)، الهاتف أو واتساب، البريد. الهاتف والبريد يبقيان على هذا الجهاز فقط ولا يُنشران.</p>
+    <div class="row">
+      <input type="file" id="impFile" accept=".xlsx,.xls,.csv" style="max-width:320px">
+      <div><label>فئة الأسماء التي بلا فئة</label><select id="impDefCat"></select></div>
+      <label class="row" style="margin:0"><input type="checkbox" id="impReplace"> استبدال القائمة الحالية بالكامل</label>
+    </div>
+    <div id="impPreview" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2>إضافة اسم</h2>
+    <div class="row">
+      <input id="addName" class="grow" placeholder="الاسم الكامل" style="min-width:200px">
+      <select id="addCat" style="max-width:160px"></select>
+      <select id="addNc" style="max-width:150px"></select>
+      <input id="addPhone" placeholder="الهاتف" dir="ltr" style="max-width:170px">
+      <input id="addEmail" placeholder="البريد" dir="ltr" style="max-width:220px">
+      <button class="btn" id="addBtn">إضافة</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <h2 class="grow" style="margin:0">القائمة</h2>
+      <input id="pSearch" placeholder="بحث…" style="max-width:220px">
+      <select id="pFilter" style="max-width:160px"></select>
+      <button class="btn sec sm" id="pExport">تصدير نسخة احتياطية</button>
+      <button class="btn red sm" id="pClear">حذف الكل</button>
+    </div>
+    <div class="counts" id="pCounts"></div>
+    <div class="tblwrap"><table><thead><tr><th>المعرّف</th><th>الاسم</th><th>الفئة</th><th class="ncCol">لون الاسم</th><th>الهاتف</th><th>البريد</th><th></th></tr></thead><tbody id="pBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ================= DESIGN ================= -->
+<section class="tab" id="t-design">
+  <div class="card">
+    <div class="row">
+      <div><label>التصميم الخاص بـ</label><select id="dSel" style="min-width:220px"></select></div>
+      <div id="dOwnBox"></div>
+      <div class="grow"></div>
+      <div><label>اسم للمعاينة</label><input id="dSample" placeholder="اكتب اسماً طويلاً للتجربة" style="min-width:240px"></div>
+      <div><label>لون الاسم للمعاينة</label><select id="dSampleNc" style="min-width:140px"></select></div>
+    </div>
+  </div>
+  <div class="ed">
+    <div class="card">
+      <div class="row pgtabs" id="pgTabs" style="margin-bottom:10px"></div>
+      <div id="stage"><canvas id="pv"></canvas><div id="ovl"></div></div>
+      <p class="mut">اسحب المربعات لتحريكها، والنقطة الزرقاء لتغيير الحجم. الخط الأحمر المتقطع هو حد القص.</p>
+    </div>
+    <div>
+      <div class="card">
+        <h2>خلفية هذا الوجه</h2>
+        <div id="aspectWarn"></div>
+        <div class="row">
+          <input type="file" id="bgFile" accept="image/png,image/jpeg,application/pdf,.pdf,.ai" style="max-width:300px">
+          <button class="btn sec sm" id="bgClear">إزالة الخلفية</button>
+          <div><label>لون الخلفية</label><input type="color" id="bgColor" style="width:70px"></div>
+        </div>
+        <p class="mut">يُقبل: صورة، أو ملف طباعة، أو ملف إليستريتور محفوظ بتوافق بي دي إف. يُفضَّل أن يشمل النزف دون علامات القص. الملف متعدد الصفحات يُستخدم وجهاً أول وثانياً.</p>
+        <div class="row"><button class="btn sec sm" id="pgAdd">إضافة وجه ثانٍ</button><button class="btn sec sm" id="pgDel">حذف هذا الوجه</button></div>
+      </div>
+      <div class="card">
+        <h2>العناصر</h2>
+        <div class="flist" id="fList"></div>
+        <div class="row">
+          <select id="fNewType" style="max-width:180px"><option value="name">الاسم</option><option value="qr">رمز الاستجابة</option><option value="cat">الفئة</option><option value="id">المعرّف</option><option value="text">نص ثابت</option></select>
+          <button class="btn sec sm" id="fAdd">إضافة عنصر</button>
+        </div>
+      </div>
+      <div class="card" id="fProps"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BADGES ================= -->
+<section class="tab" id="t-badges">
+  <div class="card">
+    <h2>ملف الطباعة والصور</h2>
+    <div class="row">
+      <div><label>الفئة</label><select id="bCat" style="min-width:180px"></select></div>
+      <div><label>الدقة</label><select id="bDpi"><option value="300">٣٠٠ نقطة/إنش (طباعة)</option><option value="200">٢٠٠ (أخف)</option></select></div>
+      <label class="row" style="margin:18px 0 0"><input type="checkbox" id="bMarks" checked> علامات القص</label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="bPdf">إنشاء ملف الطباعة</button>
+      <button class="btn sec" id="bZip">صور البطاقات (ملف مضغوط)</button>
+    </div>
+    <div id="bProg" style="margin-top:10px;display:none"><progress id="bBar" max="1" value="0"></progress><div class="mut" id="bProgTxt"></div></div>
+    <p class="mut">ملف الطباعة: صفحة لكل وجه من كل بطاقة بمقاسها مع النزف وعلامات القص، مرتبة حسب الفئة. الصور: بطاقة كل شخص مقصوصة على مقاسها النهائي.</p>
+  </div>
+  <div class="card">
+    <div class="row"><h2 class="grow" style="margin:0">معاينة</h2><button class="btn sec sm" id="bPrev">تحديث المعاينة</button></div>
+    <div class="thumbs" id="thumbs" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<!-- ================= SEND ================= -->
+<section class="tab" id="t-send">
+  <div class="note" id="sendNote">روابط البطاقات تعمل بعد نشر التغييرات. كل رابط يفتح صفحة فيها بطاقة الشخص جاهزة للحفظ.</div>
+  <div class="card">
+    <h2>نص الرسالة</h2>
+    <div class="grid">
+      <div style="grid-column:1/-1"><label>الرسالة (المتغيرات: {الاسم} {الفعالية} {التاريخ} {الرابط} {الفئة} {الجهة})</label><textarea id="msgBody"></textarea></div>
+      <div><label>عنوان البريد</label><input id="msgSubj"></div>
+      <div><label>رمز الدولة للهواتف</label><input id="msgCC" dir="ltr" style="max-width:120px"></div>
+      <div><label>عنوان الموقع للروابط</label><input id="msgBase" dir="ltr"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <h2 class="grow" style="margin:0">المستلمون</h2>
+      <select id="sFilter" style="max-width:200px"><option value="all">الكل</option><option value="pending">لم يُرسل لهم بعد</option><option value="phone">لديهم هاتف</option><option value="email">لديهم بريد</option><option value="none">بلا هاتف ولا بريد</option></select>
+      <input id="sSearch" placeholder="بحث…" style="max-width:200px">
+      <button class="btn sec sm" id="sExport">تصدير قائمة المراسلة</button>
+    </div>
+    <div class="counts" id="sCounts"></div>
+    <div class="tblwrap"><table><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>إرسال</th><th>الحالة</th></tr></thead><tbody id="sBody"></tbody></table></div>
+  </div>
+</section>
+
+<!-- ================= PUBLISH ================= -->
+<section class="tab" id="t-publish">
+  <div class="card">
+    <h2>حالة النشر</h2>
+    <div id="pubState"></div>
+  </div>
+  <div class="card">
+    <h2>النشر على جيت هب</h2>
+    <div class="grid">
+      <div><label>الحساب</label><input id="ghOwner" dir="ltr"></div>
+      <div><label>المستودع</label><input id="ghRepo" dir="ltr"></div>
+      <div><label>الفرع</label><input id="ghBranch" dir="ltr"></div>
+      <div><label>رمز الوصول</label><input id="ghToken" type="password" dir="ltr" autocomplete="off"></div>
+    </div>
+    <label class="row" style="margin-top:8px"><input type="checkbox" id="ghRemember"> تذكّر رمز الوصول على هذا الجهاز</label>
+    <details class="mut" style="margin:8px 0"><summary>كيف أحصل على رمز الوصول؟</summary>
+      <ol>
+        <li>من إعدادات حسابك في جيت هب: إعدادات المطوّر ← رموز الوصول الشخصية ← الرموز الدقيقة ← إنشاء رمز.</li>
+        <li>المالك: حساب التكنوقراط السوريين، والمستودع: مستودع هذا التطبيق فقط.</li>
+        <li>الصلاحيات: المحتويات ← قراءة وكتابة. ومدة صلاحية قصيرة تكفي.</li>
+      </ol>
+    </details>
+    <div class="row"><button class="btn" id="pubBtn">نشر التغييرات الآن</button><button class="btn sec" id="pubZip">تنزيل ملفات النشر بدلاً من ذلك</button></div>
+    <div id="pubLog" class="mut" style="margin-top:10px;white-space:pre-line"></div>
+  </div>
+  <div class="card">
+    <h2>مزامنة هذه الصفحة مع النسخة المنشورة</h2>
+    <p class="mut">يستبدل البيانات المحلية بآخر نسخة منشورة، مع الاحتفاظ بالهواتف والبريد المحفوظة هنا حسب المعرّف.</p>
+    <button class="btn sec" id="pullBtn">تحميل النسخة المنشورة</button>
+  </div>
+</section>
+</div>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"></form></dialog>
+<div id="toast"></div>
+
+<script src="lib/qrcode.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/jszip.min.js"></script>
+<script src="lib/common.js"></script>
+<script>
+(async function(){
+'use strict';
+var G = window.GATE;
+var $ = function(id){ return document.getElementById(id); };
+var esc = G.esc;
+function toast(m){ var t = $('toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function(){ t.style.display = 'none'; }, 3000); }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+/* ---------- IndexedDB ---------- */
+var DB = (function(){
+  var p;
+  function db(){ return p || (p = new Promise(function(res, rej){
+    var r = indexedDB.open('gate-admin', 1);
+    r.onupgradeneeded = function(){ r.result.createObjectStore('kv'); r.result.createObjectStore('files'); };
+    r.onsuccess = function(){ res(r.result); }; r.onerror = function(){ rej(r.error); };
+  })); }
+  function tx(st, mode, fn){ return db().then(function(d){ return new Promise(function(res, rej){
+    var t = d.transaction(st, mode), q = fn(t.objectStore(st));
+    t.oncomplete = function(){ res(q && q.result); }; t.onerror = function(){ rej(t.error); };
+  }); }); }
+  return {
+    get: function(st, k){ return tx(st, 'readonly', function(s){ return s.get(k); }); },
+    set: function(st, k, v){ return tx(st, 'readwrite', function(s){ return s.put(v, k); }); },
+    del: function(st, k){ return tx(st, 'readwrite', function(s){ return s.delete(k); }); },
+    keys: function(st){ return tx(st, 'readonly', function(s){ return s.getAllKeys(); }); }
+  };
+})();
+
+/* ---------- state ---------- */
+var S = null;               // { ev, msg, gh, publishedHash, publishedAt }
+var fileUrls = {};          // template path -> object URL (local, unpublished uploads)
+function resolve(src){ return fileUrls[src] || src; }
+
+function defaultMsg(){
+  return {
+    body: 'مرحباً {الاسم}،\nتتشرف مؤسسة {الجهة} بدعوتك لحضور {الفعالية} يوم {التاريخ}.\nهذا رابط دعوتك ورمز الدخول الخاص بك، يُرجى إبرازه عند الباب:\n{الرابط}',
+    subj: 'دعوتك لحضور {الفعالية}',
+    cc: '963',
+    base: location.origin + location.pathname.replace(/[^/]*$/, '')
+  };
+}
+function guessGh(){
+  var owner = '', repo = '';
+  var m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  if (m){ owner = m[1]; repo = location.pathname.split('/').filter(Boolean)[0] || ''; }
+  return { owner: owner || 'SyrianTechnocrats', repo: repo || 'gate', branch: 'main' };
+}
+
+function publicEvent(ev){
+  var e = JSON.parse(JSON.stringify(ev));
+  e.people = ev.people.map(function(p){ var o = { id: p.id, name: p.name, cat: p.cat, t: p.t }; if (p.nc) o.nc = p.nc; return o; });
+  delete e.updated;
+  return e;
+}
+function pubHash(){ return JSON.stringify(publicEvent(S.ev)); }
+
+var saveT = null;
+function changed(){ clearTimeout(saveT); saveT = setTimeout(persist, 300); renderHeader(); }
+function persist(){ return DB.set('kv', 'state', S).catch(function(){ toast('تعذر الحفظ المحلي'); }); }
+
+async function loadPublished(){
+  var ev = await G.loadEvent();
+  ev.people.forEach(function(p){ if (!p.t) p.t = G.token(); });
+  return ev;
+}
+
+async function init(){
+  S = await DB.get('kv', 'state').catch(function(){ return null; });
+  if (!S){
+    var ev;
+    try { ev = await loadPublished(); } catch(e){ ev = G.normalizeEvent({}); }
+    S = { ev: ev, msg: defaultMsg(), gh: guessGh(), publishedHash: null, publishedAt: null };
+    S.publishedHash = pubHash();
+    await persist();
+  }
+  S.ev = G.normalizeEvent(S.ev);
+  S.msg = Object.assign(defaultMsg(), S.msg || {});
+  S.gh = Object.assign(guessGh(), S.gh || {});
+  var keys = await DB.keys('files').catch(function(){ return []; });
+  for (var i = 0; i < keys.length; i++){ var b = await DB.get('files', keys[i]); if (b) fileUrls[keys[i]] = URL.createObjectURL(b); }
+  await G.fontsReady();
+  renderAll();
+}
+
+/* ---------- header & tabs ---------- */
+function renderHeader(){
+  $('htitle').firstChild.nodeValue = S.ev.name + ' — الإدارة';
+  $('hsub').textContent = 'الرمز ' + S.ev.code + ' · ' + S.ev.people.length + ' اسم · ' + (S.ev.days.join('، ') || 'بلا أيام');
+  var d = pubHash() !== S.publishedHash;
+  var el = $('dirty'); el.textContent = d ? 'تغييرات غير منشورة' : 'منشور ✓'; el.className = 'pill' + (d ? ' dirty' : '');
+}
+document.querySelectorAll('#tabs button').forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll('#tabs button').forEach(function(x){ x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.id === 't-' + b.dataset.t); });
+    renderTab(b.dataset.t);
+  };
+});
+function curTab(){ var b = document.querySelector('#tabs button.on'); return b ? b.dataset.t : 'event'; }
+function renderTab(t){
+  if (t === 'event') renderEvent();
+  if (t === 'people') renderPeople();
+  if (t === 'design') renderDesign();
+  if (t === 'badges') renderBadges();
+  if (t === 'send') renderSend();
+  if (t === 'publish') renderPublish();
+}
+function renderAll(){ renderHeader(); renderTab(curTab()); }
+
+/* ---------- dialog helper ---------- */
+function ask(html, okLabel){
+  return new Promise(function(res){
+    var f = $('dlgForm');
+    f.innerHTML = html + '<div class="row" style="margin-top:14px;justify-content:flex-start"><button class="btn" value="ok">' + esc(okLabel || 'موافق') + '</button><button class="btn sec" value="cancel" formnovalidate>إلغاء</button></div>';
+    var d = $('dlg');
+    d.returnValue = '';
+    d.onclose = function(){ res(d.returnValue === 'ok' ? f : null); };
+    d.showModal();
+  });
+}
+
+/* =================================================================
+   EVENT TAB
+   ================================================================= */
+function catCount(key){ return S.ev.people.filter(function(p){ return p.cat === key; }).length; }
+function renderEvent(){
+  var ev = S.ev;
+  $('evLabel').value = ev.docLabel; $('evName').value = ev.name; $('evOrg').value = ev.org; $('evCode').value = ev.code; $('evCool').value = ev.cooldownSec;
+  $('bW').value = ev.badge.w; $('bH').value = ev.badge.h; $('bB').value = ev.badge.bleed; $('evSync').value = ev.syncUrl;
+  $('daysBox').innerHTML = ev.days.map(function(d, i){ return '<span class="counts" style="margin:0"><span>' + esc(G.arDate(d)) + ' <a href="#" data-dday="' + i + '" style="color:var(--err)">✕</a></span></span>'; }).join('') || '<span class="mut">لم تُحدد أيام بعد</span>';
+  $('ncBox').innerHTML = ev.nameColors.map(function(c, i){
+    return '<div class="row" style="margin-bottom:6px"><input data-nci="' + i + '" data-k="label" value="' + esc(c.label) + '" style="max-width:180px"><input type="color" data-nci="' + i + '" data-k="color" value="' + esc(c.color) + '" style="width:60px"><span class="mut">' + ev.people.filter(function(p){ return p.nc === c.key; }).length + ' اسم</span><button class="btn red sm" data-ncdel="' + i + '">حذف</button></div>';
+  }).join('') || '<span class="mut">لا ألوان — كل الأسماء بلون التصميم</span>';
+  $('catBody').innerHTML = ev.categories.map(function(c, i){
+    return '<tr><td><input data-ci="' + i + '" data-k="label" value="' + esc(c.label) + '"></td><td><input type="color" data-ci="' + i + '" data-k="color" value="' + esc(c.color) + '" style="width:60px"></td><td><input data-ci="' + i + '" data-k="prefix" value="' + esc(c.prefix) + '" dir="ltr" maxlength="2" style="width:70px"></td><td>' + catCount(c.key) + '</td><td>' + (catCount(c.key) ? '' : '<button class="btn red sm" data-cdel="' + i + '">حذف</button>') + '</td></tr>';
+  }).join('');
+}
+function bindVal(id, fn){ $(id).addEventListener('change', function(){ fn(this.value); changed(); renderHeader(); }); }
+bindVal('evName', function(v){ S.ev.name = v.trim() || 'فعالية'; });
+bindVal('evOrg', function(v){ S.ev.org = v.trim(); });
+bindVal('evLabel', function(v){ S.ev.docLabel = v; });
+bindVal('evCode', function(v){
+  var c = v.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  if (!c){ toast('الرمز لا يمكن أن يكون فارغاً'); $('evCode').value = S.ev.code; return; }
+  S.ev.code = c; $('evCode').value = c;
+});
+bindVal('evCool', function(v){ S.ev.cooldownSec = clamp(+v || 0, 0, 600); });
+bindVal('bW', function(v){ S.ev.badge.w = clamp(+v || 50, 20, 300); });
+bindVal('bH', function(v){ S.ev.badge.h = clamp(+v || 85, 20, 300); });
+bindVal('bB', function(v){ S.ev.badge.bleed = clamp(+v || 0, 0, 10); });
+bindVal('evSync', function(v){ S.ev.syncUrl = v.trim(); });
+$('dayAdd').onclick = function(){ var v = $('dayNew').value; if (!v) return; if (S.ev.days.indexOf(v) < 0){ S.ev.days.push(v); S.ev.days.sort(); } changed(); renderEvent(); };
+$('daysBox').onclick = function(e){ var a = e.target.closest('[data-dday]'); if (!a) return; e.preventDefault(); S.ev.days.splice(+a.dataset.dday, 1); changed(); renderEvent(); };
+$('catBody').addEventListener('change', function(e){
+  var t = e.target; if (!t.dataset.ci) return;
+  var c = S.ev.categories[+t.dataset.ci], k = t.dataset.k, v = t.value.trim();
+  if (k === 'prefix'){
+    v = v.toUpperCase().replace(/[^A-Z]/g, '');
+    if (!v || S.ev.categories.some(function(o){ return o !== c && o.prefix === v; })){ toast('حرف المعرّف يجب أن يكون فريداً'); t.value = c.prefix; return; }
+    if (catCount(c.key)){ toast('تغيير الحرف لا يغيّر معرّفات الأسماء الموجودة'); }
+  }
+  c[k] = v; changed();
+});
+$('catBody').addEventListener('click', function(e){
+  var b = e.target.closest('[data-cdel]'); if (!b) return;
+  var c = S.ev.categories[+b.dataset.cdel];
+  S.ev.categories.splice(+b.dataset.cdel, 1); delete S.ev.designs[c.key]; changed(); renderEvent();
+});
+$('ncBox').addEventListener('change', function(e){
+  var t = e.target; if (!t.dataset.nci) return;
+  var c = S.ev.nameColors[+t.dataset.nci]; c[t.dataset.k] = t.dataset.k === 'label' ? (t.value.trim() || c.label) : t.value; changed();
+});
+$('ncBox').addEventListener('click', function(e){
+  var b = e.target.closest('[data-ncdel]'); if (!b) return;
+  var c = S.ev.nameColors[+b.dataset.ncdel];
+  S.ev.people.forEach(function(p){ if (p.nc === c.key) delete p.nc; });
+  S.ev.nameColors.splice(+b.dataset.ncdel, 1); changed(); renderEvent();
+});
+$('ncAdd').onclick = function(){ S.ev.nameColors.push({ key: 'n' + G.token(4), label: 'لون جديد', color: '#facc15' }); changed(); renderEvent(); };
+$('catAdd').onclick = function(){
+  var used = S.ev.categories.map(function(c){ return c.prefix; });
+  var letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find(function(l){ return used.indexOf(l) < 0; }) || 'Z';
+  S.ev.categories.push({ key: 'c' + G.token(4), label: 'فئة جديدة', color: '#7c3aed', prefix: letter });
+  changed(); renderEvent();
+};
+$('newEvent').onclick = async function(){
+  var f = await ask('<h3 style="margin-top:0">بدء فعالية جديدة</h3>' +
+    '<label>اسم الفعالية</label><input name="n" required value="">' +
+    '<label style="margin-top:8px">الرمز (أحرف لاتينية كبيرة وأرقام)</label><input name="c" required dir="ltr" maxlength="16">' +
+    '<label style="margin-top:8px">التاريخ</label><input name="d" type="date">' +
+    '<label class="row" style="margin-top:10px"><input type="checkbox" name="keepD" checked> الإبقاء على التصميم الحالي</label>' +
+    '<label class="row"><input type="checkbox" name="keepP"> الإبقاء على قائمة الأسماء (تتغير رموزهم مع الرمز الجديد)</label>' +
+    '<p class="mut">لن يُحذف شيء من المستودع حتى تنشر.</p>', 'بدء');
+  if (!f) return;
+  var code = f.c.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  if (!code || code === S.ev.code){ toast('اختر رمزاً جديداً مختلفاً عن الحالي'); return; }
+  S.ev.name = f.n.value.trim() || 'فعالية'; S.ev.code = code; S.ev.days = f.d.value ? [f.d.value] : [];
+  if (!f.keepD.checked){ S.ev.designs = {}; }
+  if (!f.keepP.checked){ S.ev.people = []; S.ev.counters = {}; }
+  else { S.ev.people.forEach(function(p){ p.t = G.token(); delete p.sent; }); }
+  S.ev = G.normalizeEvent(S.ev);
+  changed(); renderAll(); toast('بدأت فعالية جديدة — لا تنسَ النشر');
+};
+
+/* =================================================================
+   PEOPLE TAB
+   ================================================================= */
+function catOptions(sel, withAll){
+  return (withAll ? '<option value="">كل الفئات</option>' : '') + S.ev.categories.map(function(c){ return '<option value="' + esc(c.key) + '"' + (c.key === sel ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('');
+}
+function ncOptions(sel){
+  return '<option value="">لون التصميم</option>' + S.ev.nameColors.map(function(c){ return '<option value="' + esc(c.key) + '"' + (c.key === sel ? ' selected' : '') + '>' + esc(c.label) + '</option>'; }).join('');
+}
+function renderPeople(){
+  var f = $('pFilter').value;
+  var hasNc = S.ev.nameColors.length > 0;
+  $('addNc').style.display = hasNc ? '' : 'none'; $('addNc').innerHTML = ncOptions($('addNc').value);
+  document.querySelectorAll('.ncCol').forEach(function(x){ x.style.display = hasNc ? '' : 'none'; });
+  $('pFilter').innerHTML = catOptions(f, true);
+  $('addCat').innerHTML = catOptions($('addCat').value || (S.ev.categories[0] || {}).key);
+  $('impDefCat').innerHTML = catOptions($('impDefCat').value || (S.ev.categories[0] || {}).key);
+  $('pCounts').innerHTML = '<span>المجموع: ' + S.ev.people.length + '</span>' + S.ev.categories.map(function(c){ return '<span><span class="chip" style="background:' + esc(c.color) + '">' + esc(c.label) + '</span> ' + catCount(c.key) + '</span>'; }).join('');
+  var q = G.normName($('pSearch').value), fc = $('pFilter').value;
+  var list = S.ev.people.filter(function(p){ return (!fc || p.cat === fc) && (!q || G.normName(p.name).indexOf(q) >= 0 || p.id.toLowerCase().indexOf(q) >= 0); });
+  $('pBody').innerHTML = list.map(function(p){
+    return '<tr data-id="' + esc(p.id) + '"><td dir="ltr" style="text-align:right">' + esc(p.id) + '</td>' +
+      '<td><input data-k="name" value="' + esc(p.name) + '"></td>' +
+      '<td><select data-k="cat">' + catOptions(p.cat) + '</select></td>' +
+      '<td class="ncCol"' + (hasNc ? '' : ' style="display:none"') + '><select data-k="nc">' + ncOptions(p.nc) + '</select></td>' +
+      '<td><input data-k="phone" dir="ltr" value="' + esc(p.phone || '') + '" style="width:150px"></td>' +
+      '<td><input data-k="email" dir="ltr" value="' + esc(p.email || '') + '" style="width:200px"></td>' +
+      '<td class="row" style="flex-wrap:nowrap"><button class="btn sec sm" data-act="view">البطاقة</button><button class="btn red sm" data-act="del">حذف</button></td></tr>';
+  }).join('') || '<tr><td colspan="7" class="mut" style="padding:20px;text-align:center">لا أسماء بعد — استورد ملفاً أو أضف اسماً</td></tr>';
+}
+['pSearch', 'pFilter'].forEach(function(id){ $(id).addEventListener('input', renderPeople); });
+function personById(id){ return S.ev.people.find(function(p){ return p.id === id; }); }
+$('pBody').addEventListener('change', function(e){
+  var tr = e.target.closest('tr[data-id]'); if (!tr) return;
+  var p = personById(tr.dataset.id), k = e.target.dataset.k; if (!p || !k) return;
+  var v = e.target.value.trim();
+  if (k === 'name' && !v){ e.target.value = p.name; return; }
+  if (k === 'cat' && v !== p.cat){
+    var oldId = p.id; p.cat = v; p.id = G.nextId(S.ev, v);
+    toast('تغيّر المعرّف من ' + oldId + ' إلى ' + p.id + ' — يلزم إرسال بطاقة جديدة');
+    p.sent = {}; changed(); renderPeople(); return;
+  }
+  if (k === 'nc'){ if (v) p.nc = v; else delete p.nc; p.sent = {}; changed(); return; }
+  p[k] = v; if (k === 'name') p.sent = {};
+  changed();
+});
+$('pBody').addEventListener('click', async function(e){
+  var b = e.target.closest('[data-act]'); if (!b) return;
+  var p = personById(b.closest('tr').dataset.id); if (!p) return;
+  if (b.dataset.act === 'del'){
+    var f = await ask('<p>حذف <b>' + esc(p.name) + '</b> (' + esc(p.id) + ')؟ ستُرفض بطاقته عند الباب بعد النشر.</p>', 'حذف');
+    if (!f) return;
+    S.ev.people = S.ev.people.filter(function(x){ return x !== p; }); changed(); renderPeople();
+  } else if (b.dataset.act === 'view'){
+    var c = await G.renderPage(S.ev, p, G.qrPage(S.ev, p), { dpi: 150, trim: true, resolve: resolve });
+    await ask('<h3 style="margin-top:0">' + esc(p.name) + '</h3><img src="' + c.toDataURL() + '" style="max-width:100%;max-height:60vh;display:block;margin:auto">', 'إغلاق');
+  }
+});
+$('addBtn').onclick = function(){
+  var n = $('addName').value.trim().replace(/\s+/g, ' '); if (!n){ $('addName').focus(); return; }
+  var cat = $('addCat').value;
+  if (S.ev.people.some(function(p){ return G.normName(p.name) === G.normName(n) && p.cat === cat; })){ toast('هذا الاسم موجود في الفئة نفسها'); return; }
+  var np = { id: G.nextId(S.ev, cat), name: n, cat: cat, t: G.token(), phone: $('addPhone').value.trim(), email: $('addEmail').value.trim() };
+  if ($('addNc').value) np.nc = $('addNc').value;
+  S.ev.people.push(np);
+  $('addName').value = ''; $('addPhone').value = ''; $('addEmail').value = '';
+  changed(); renderPeople(); $('addName').focus();
+};
+$('addName').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('addBtn').click(); });
+$('pClear').onclick = async function(){
+  if (!S.ev.people.length) return;
+  var f = await ask('<p>حذف كل الأسماء (' + S.ev.people.length + ') من القائمة المحلية؟ لا يتأثر الموقع حتى تنشر.</p>', 'حذف الكل');
+  if (!f) return; S.ev.people = []; changed(); renderPeople();
+};
+$('pExport').onclick = function(){
+  var ncL = function(p){ var c = S.ev.nameColors.find(function(x){ return x.key === p.nc; }); return c ? c.label : ''; };
+  var rows = [['المعرف', 'الاسم', 'الفئة', 'اللون', 'الهاتف', 'البريد', 'الرابط']].concat(S.ev.people.map(function(p){ return [p.id, p.name, G.cat(S.ev, p.cat).label, ncL(p), p.phone || '', p.email || '', G.badgeLink(p, S.msg.base)]; }));
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'الأسماء'); wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.writeFile(wb, 'أسماء ' + S.ev.code + ' - ' + G.dstr() + '.xlsx');
+};
+
+/* ----- import ----- */
+var COLS = {
+  id: /^(المعرف|المعرّف|id|code|الرمز)$/i,
+  name: /(الاسم|اسم|name|full ?name|الاسم الكامل)/i,
+  cat: /(الفئة|فئة|النوع|الصفة|category|type|role)/i,
+  phone: /(هاتف|جوال|موبايل|واتس|رقم|phone|mobile|whatsapp|tel)/i,
+  email: /(بريد|ايميل|إيميل|email|e-mail|mail)/i,
+  color: /(لون|اللون|colou?r)/i
+};
+var NC_SYN = { 'ازرق': ['blue', 'b'], 'ابيض': ['white', 'w'] };
+function ncFromText(v){
+  var t = G.normName(v); if (!t) return null;
+  for (var i = 0; i < S.ev.nameColors.length; i++){
+    var c = S.ev.nameColors[i], l = G.normName(c.label);
+    if (t === l || t === String(c.color).toLowerCase() || (NC_SYN[l] || []).indexOf(t) >= 0) return c.key;
+  }
+  return null;
+}
+var pendingImport = null;
+$('impFile').onchange = async function(){
+  var file = this.files[0]; if (!file) return;
+  try {
+    var wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    var rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+    // find header row: first row (of first 10) matching a name column
+    var hi = -1, map = {};
+    for (var r = 0; r < Math.min(10, rows.length) && hi < 0; r++){
+      var m = {};
+      rows[r].forEach(function(h, ci){ h = String(h).trim(); Object.keys(COLS).forEach(function(k){ if (m[k] == null && COLS[k].test(h)){ if (k === 'name' && (COLS.email.test(h) || COLS.color.test(h))) return; if (k === 'phone' && COLS.color.test(h)) return; m[k] = ci; } }); });
+      if (m.name != null){ hi = r; map = m; }
+    }
+    if (hi < 0){ hi = -1; map = { name: 0 }; }
+    var data = rows.slice(hi + 1).filter(function(r){ return String(r[map.name] || '').trim(); });
+    var catByLabel = {}; S.ev.categories.forEach(function(c){ catByLabel[G.normName(c.label)] = c.key; });
+    var unknownCats = {};
+    var items = data.map(function(r){
+      var catRaw = map.cat != null ? String(r[map.cat] || '').trim() : '';
+      var ck = catRaw ? catByLabel[G.normName(catRaw)] : null;
+      if (catRaw && !ck) unknownCats[catRaw] = (unknownCats[catRaw] || 0) + 1;
+      return { name: String(r[map.name]).trim().replace(/\s+/g, ' '), catRaw: catRaw, cat: ck, phone: map.phone != null ? String(r[map.phone] || '').trim() : '', email: map.email != null ? String(r[map.email] || '').trim() : '', nc: map.color != null ? ncFromText(r[map.color]) : null };
+    });
+    pendingImport = { items: items, unknownCats: unknownCats, map: map };
+    var colNames = { name: 'الاسم', cat: 'الفئة', phone: 'الهاتف', email: 'البريد', color: 'لون الاسم' };
+    var found = Object.keys(colNames).filter(function(k){ return map[k] != null; }).map(function(k){ return colNames[k]; }).join('، ');
+    var uc = Object.keys(unknownCats);
+    $('impPreview').innerHTML = '<div class="note">وُجد ' + items.length + ' اسماً. الأعمدة المقروءة: ' + esc(found) + '.' +
+      (uc.length ? '<br>فئات غير موجودة: ' + uc.map(function(u){ return '<b>' + esc(u) + '</b> (' + unknownCats[u] + ')'; }).join('، ') +
+        '<label class="row" style="margin-top:6px"><input type="checkbox" id="impMkCats" checked> إنشاؤها كفئات جديدة (وإلا تُضاف إلى الفئة الافتراضية)</label>' : '') +
+      '</div><div class="row"><button class="btn" id="impGo">تنفيذ الاستيراد</button><button class="btn sec" id="impCancel">إلغاء</button></div>';
+  } catch(e){ $('impPreview').innerHTML = '<div class="errbox">تعذر قراءة الملف: ' + esc(e.message) + '</div>'; }
+};
+$('impPreview').addEventListener('click', function(e){
+  if (e.target.id === 'impCancel'){ pendingImport = null; $('impPreview').innerHTML = ''; $('impFile').value = ''; }
+  if (e.target.id !== 'impGo' || !pendingImport) return;
+  var mk = $('impMkCats') && $('impMkCats').checked, def = $('impDefCat').value;
+  if (mk){
+    var palette = ['#7c3aed', '#db2777', '#0891b2', '#65a30d', '#ea580c', '#4f46e5'];
+    Object.keys(pendingImport.unknownCats).forEach(function(lbl, i){
+      var used = S.ev.categories.map(function(c){ return c.prefix; });
+      var letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find(function(l){ return used.indexOf(l) < 0; }) || 'Z';
+      var c = { key: 'c' + G.token(4), label: lbl, color: palette[i % palette.length], prefix: letter };
+      S.ev.categories.push(c);
+      pendingImport.items.forEach(function(it){ if (it.catRaw === lbl) it.cat = c.key; });
+    });
+  }
+  if ($('impReplace').checked){ S.ev.people = []; }
+  var added = 0, updated = 0, dup = 0, seenNew = {};
+  pendingImport.items.forEach(function(it){
+    var cat = it.cat || def;
+    var nn = G.normName(it.name), key = nn + '|' + cat;
+    if (seenNew[key]){ dup++; return; }
+    seenNew[key] = 1;
+    var ex = S.ev.people.find(function(p){ return G.normName(p.name) === nn && p.cat === cat; });
+    if (ex){ if (it.phone) ex.phone = it.phone; if (it.email) ex.email = it.email; if (it.nc) ex.nc = it.nc; updated++; return; }
+    var np = { id: G.nextId(S.ev, cat), name: it.name, cat: cat, t: G.token(), phone: it.phone, email: it.email };
+    if (it.nc) np.nc = it.nc;
+    S.ev.people.push(np);
+    added++;
+  });
+  pendingImport = null; $('impFile').value = '';
+  $('impPreview').innerHTML = '<div class="note">أُضيف ' + added + ' اسماً، وحُدّثت بيانات اتصال ' + updated + (dup ? '، وتُجوهل ' + dup + ' مكرراً داخل الملف' : '') + '.</div>';
+  changed(); renderPeople();
+});
+
+/* =================================================================
+   DESIGN TAB
+   ================================================================= */
+var dKey = '*', dPage = 0, dSelF = -1;
+var TYPE_LABEL = { name: 'الاسم', qr: 'رمز الاستجابة', cat: 'الفئة', id: 'المعرّف', text: 'نص' };
+function curDesign(){ return S.ev.designs[dKey] || S.ev.designs['*']; }
+function hasOwn(){ return dKey === '*' || !!S.ev.designs[dKey]; }
+function samplePerson(){
+  var cat = dKey === '*' ? (S.ev.categories[0] || {}).key : dKey;
+  var nm = $('dSample').value.trim();
+  if (!nm){
+    var inCat = S.ev.people.filter(function(p){ return p.cat === cat; });
+    var pool = inCat.length ? inCat : S.ev.people;
+    nm = pool.reduce(function(a, p){ return p.name.length > a.length ? p.name : a; }, '') || 'محمد عبد الرحمن الأحمد';
+  }
+  var prefix = G.cat(S.ev, cat).prefix || 'A';
+  var sp = { id: prefix + '001', name: nm, cat: cat, t: 'sample' };
+  if ($('dSampleNc').value) sp.nc = $('dSampleNc').value;
+  return sp;
+}
+function renderDesign(){
+  var opts = '<option value="*">التصميم الافتراضي (لكل الفئات)</option>' + S.ev.categories.map(function(c){ return '<option value="' + esc(c.key) + '">' + esc(c.label) + (S.ev.designs[c.key] ? ' — تصميم خاص' : '') + '</option>'; }).join('');
+  $('dSel').innerHTML = opts; $('dSel').value = dKey;
+  $('dSampleNc').innerHTML = ncOptions($('dSampleNc').value); $('dSampleNc').parentNode.style.display = S.ev.nameColors.length ? '' : 'none';
+  $('dOwnBox').innerHTML = dKey === '*' ? '' : (S.ev.designs[dKey]
+    ? '<button class="btn sec sm" id="dUseDef">العودة للتصميم الافتراضي</button>'
+    : '<div class="note" style="margin:18px 0 0">هذه الفئة تستخدم التصميم الافتراضي. <button class="btn sm" id="dMakeOwn">تصميم خاص لهذه الفئة</button></div>');
+  var d = curDesign();
+  if (dPage >= d.pages.length) dPage = 0;
+  $('pgTabs').innerHTML = d.pages.map(function(p, i){ return '<button class="btn sm ' + (i === dPage ? '' : 'sec') + '" data-pg="' + i + '">الوجه ' + (i + 1) + '</button>'; }).join('');
+  $('pgAdd').style.display = d.pages.length < 2 && hasOwn() ? '' : 'none';
+  $('pgDel').style.display = d.pages.length > 1 && hasOwn() ? '' : 'none';
+  var editable = hasOwn();
+  ['bgFile', 'bgClear', 'bgColor', 'fAdd', 'fNewType'].forEach(function(id){ $(id).disabled = !editable; });
+  $('bgColor').value = /^#[0-9a-f]{6}$/i.test(d.pages[dPage].bg || '') ? d.pages[dPage].bg : '#ffffff';
+  renderFieldList(); renderProps(); renderPreview();
+}
+$('dSel').onchange = function(){ dKey = this.value; dPage = 0; dSelF = -1; renderDesign(); };
+$('dSample').addEventListener('input', function(){ clearTimeout(this.t); this.t = setTimeout(renderPreview, 250); });
+$('dSampleNc').addEventListener('change', renderPreview);
+$('dOwnBox').addEventListener('click', function(e){
+  if (e.target.id === 'dMakeOwn'){ S.ev.designs[dKey] = JSON.parse(JSON.stringify(S.ev.designs['*'])); changed(); renderDesign(); }
+  if (e.target.id === 'dUseDef'){ delete S.ev.designs[dKey]; changed(); renderDesign(); }
+});
+$('pgTabs').onclick = function(e){ var b = e.target.closest('[data-pg]'); if (!b) return; dPage = +b.dataset.pg; dSelF = -1; renderDesign(); };
+$('pgAdd').onclick = function(){ var d = curDesign(); d.pages.push({ src: null, bg: '#ffffff' }); dPage = d.pages.length - 1; changed(); renderDesign(); };
+$('pgDel').onclick = async function(){
+  var d = curDesign(); if (d.pages.length < 2) return;
+  if (!await ask('<p>حذف الوجه ' + (dPage + 1) + ' وعناصره؟</p>', 'حذف')) return;
+  d.fields = d.fields.filter(function(f){ return (f.page || 0) !== dPage; });
+  d.fields.forEach(function(f){ if ((f.page || 0) > dPage) f.page = (f.page || 0) - 1; });
+  d.pages.splice(dPage, 1); dPage = 0; dSelF = -1; changed(); renderDesign();
+};
+$('bgColor').onchange = function(){ curDesign().pages[dPage].bg = this.value; changed(); renderPreview(); };
+$('bgClear').onclick = function(){ curDesign().pages[dPage].src = null; changed(); renderDesign(); };
+
+async function hashName(blob, ext){
+  var buf = await blob.arrayBuffer();
+  var h = await crypto.subtle.digest('SHA-1', buf);
+  return 'templates/' + Array.from(new Uint8Array(h)).slice(0, 8).map(function(b){ return b.toString(16).padStart(2, '0'); }).join('') + '.' + ext;
+}
+async function storeTemplate(blob, ext){
+  var path = await hashName(blob, ext);
+  await DB.set('files', path, blob);
+  if (fileUrls[path]) URL.revokeObjectURL(fileUrls[path]);
+  fileUrls[path] = URL.createObjectURL(blob);
+  return path;
+}
+function canvasBlob(c, type, q){ return new Promise(function(r){ c.toBlob(r, type, q); }); }
+async function pdfPages(file){
+  var pdfjs = await import('./lib/pdf.min.js');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('lib/pdf.worker.min.js', location.href).href;
+  var doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
+  var out = [];
+  for (var i = 1; i <= Math.min(doc.numPages, 2); i++){
+    var pg = await doc.getPage(i), vp1 = pg.getViewport({ scale: 1 });
+    var mmW = vp1.width / 72 * 25.4, mmH = vp1.height / 72 * 25.4;
+    var scale = clamp((mmW / 25.4 * 350) / vp1.width, 1, 8); // ~350 dpi
+    var vp = pg.getViewport({ scale: scale });
+    var c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    var ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await pg.render({ canvasContext: ctx, viewport: vp }).promise;
+    out.push({ canvas: c, mmW: mmW, mmH: mmH });
+  }
+  return out;
+}
+async function imageFileToBlob(file){
+  var url = URL.createObjectURL(file);
+  try {
+    var im = await G.loadImage(url);
+    var max = Math.max(im.naturalWidth, im.naturalHeight);
+    if (file.size < 3e6 && max <= 3000) return { blob: file, ext: file.type === 'image/png' ? 'png' : 'jpg', w: im.naturalWidth, h: im.naturalHeight };
+    var s = 3000 / max, c = document.createElement('canvas');
+    c.width = Math.round(im.naturalWidth * Math.min(1, s)); c.height = Math.round(im.naturalHeight * Math.min(1, s));
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+    return { blob: await canvasBlob(c, 'image/jpeg', 0.93), ext: 'jpg', w: c.width, h: c.height };
+  } finally { G.forgetImage(url); URL.revokeObjectURL(url); }
+}
+$('bgFile').onchange = async function(){
+  var file = this.files[0]; if (!file) return;
+  var d = curDesign();
+  try {
+    toast('جارٍ تجهيز التصميم…');
+    if (file.type === 'application/pdf' || /\.(pdf|ai)$/i.test(file.name)){
+      var pages = await pdfPages(file);
+      for (var i = 0; i < pages.length; i++){
+        var idx = dPage + i; if (idx > 1) break;
+        if (!d.pages[idx]) d.pages.push({ src: null, bg: '#ffffff' });
+        var blob = await canvasBlob(pages[i].canvas, 'image/jpeg', 0.93);
+        d.pages[idx].src = await storeTemplate(blob, 'jpg');
+        d.pages[idx].mm = [pages[i].mmW, pages[i].mmH];
+        d.pages[idx].px = [pages[i].canvas.width, pages[i].canvas.height];
+      }
+      if (pages.length > 1 && dPage === 0) toast('استُخدمت صفحتا الملف وجهاً أول وثانياً');
+    } else {
+      var r = await imageFileToBlob(file);
+      d.pages[dPage].src = await storeTemplate(r.blob, r.ext);
+      d.pages[dPage].px = [r.w, r.h]; delete d.pages[dPage].mm;
+    }
+    changed(); renderDesign();
+  } catch(e){ toast(/\.ai$/i.test(file.name) ? 'ملف إليستريتور هذا غير محفوظ بتوافق بي دي إف — صدّره صورة أو ملف طباعة' : 'تعذر قراءة الملف: ' + e.message); }
+  this.value = '';
+};
+
+function fieldsOnPage(){ var d = curDesign(); return d.fields.map(function(f, i){ return { f: f, i: i }; }).filter(function(x){ return (x.f.page || 0) === dPage; }); }
+function renderFieldList(){
+  $('fList').innerHTML = fieldsOnPage().map(function(x){ return '<button class="btn sm ' + (x.i === dSelF ? '' : 'sec') + '" data-fi="' + x.i + '">' + esc(TYPE_LABEL[x.f.type] || x.f.type) + (x.f.type === 'text' ? ': ' + (x.f.text ? esc(String(x.f.text).slice(0, 14)) : 'شريط ملون') : '') + '</button>'; }).join('') || '<span class="mut">لا عناصر على هذا الوجه</span>';
+}
+$('fList').onclick = function(e){ var b = e.target.closest('[data-fi]'); if (!b) return; dSelF = +b.dataset.fi; renderFieldList(); renderProps(); placeBoxes(); };
+$('fAdd').onclick = function(){
+  var t = $('fNewType').value, d = curDesign();
+  var f = { type: t, page: dPage, x: 0.15, y: 0.4, w: 0.7, h: 0.1, color: '#111111', font: 'Cairo', weight: 700, align: 'center' };
+  if (t === 'qr'){ var r = pageRatio(); f = { type: 'qr', page: dPage, x: 0.2, y: 0.35, w: 0.6, h: 0.6 * r }; }
+  if (t === 'name') f.lines = 2;
+  if (t === 'text') f.text = '{event}';
+  d.fields.push(f); dSelF = d.fields.length - 1; changed(); renderDesign();
+};
+function pageRatio(){ var b = S.ev.badge; return (b.w + 2 * b.bleed) / (b.h + 2 * b.bleed); } // W/H
+function renderProps(){
+  var d = curDesign(), f = d.fields[dSelF];
+  if (!f || (f.page || 0) !== dPage){ $('fProps').innerHTML = '<span class="mut">اختر عنصراً لتعديل خصائصه</span>'; return; }
+  var dis = hasOwn() ? '' : ' disabled';
+  var h = '<h2>خصائص: ' + esc(TYPE_LABEL[f.type]) + '</h2><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">';
+  if (f.type === 'text') h += '<div style="grid-column:1/-1"><label>النص ({event} اسم الفعالية، {date} التاريخ، {org} الجهة)</label><input data-p="text" value="' + esc(f.text || '') + '"' + dis + '></div>';
+  if (f.type !== 'qr'){
+    h += '<div><label>الخط</label><select data-p="font"' + dis + '><option' + (f.font === 'Cairo' ? ' selected' : '') + '>Cairo</option><option' + (f.font === 'Tajawal' ? ' selected' : '') + '>Tajawal</option></select></div>';
+    h += '<div><label>السماكة</label><select data-p="weight"' + dis + '><option value="700"' + (f.weight == 700 ? ' selected' : '') + '>عريض</option><option value="400"' + (f.weight == 400 ? ' selected' : '') + '>عادي</option></select></div>';
+    h += '<div><label>اللون</label><input type="color" data-p="color" value="' + (/^#[0-9a-f]{6}$/i.test(f.color) ? f.color : '#111111') + '"' + dis + '>' + '<label class="row" style="margin-top:4px"><input type="checkbox" data-p="colorCat"' + (f.color === '{catColor}' ? ' checked' : '') + dis + '> لون الفئة</label></div>';
+    h += '<div><label>المحاذاة</label><select data-p="align"' + dis + '><option value="center"' + (f.align === 'center' ? ' selected' : '') + '>وسط</option><option value="right"' + (f.align === 'right' ? ' selected' : '') + '>يمين</option><option value="left"' + (f.align === 'left' ? ' selected' : '') + '>يسار</option></select></div>';
+    h += '<div><label>الأسطر</label><select data-p="lines"' + dis + '><option value="1"' + ((f.lines || 1) == 1 ? ' selected' : '') + '>سطر واحد</option><option value="2"' + (f.lines == 2 ? ' selected' : '') + '>حتى سطرين</option></select></div>';
+    h += '<div><label>خلفية المربع</label><select data-p="bgMode"' + dis + '><option value="none"' + (!f.bg ? ' selected' : '') + '>بلا</option><option value="cat"' + (f.bg === '{catColor}' ? ' selected' : '') + '>لون الفئة</option><option value="custom"' + (f.bg && f.bg !== '{catColor}' ? ' selected' : '') + '>لون محدد</option></select>' + (f.bg && f.bg !== '{catColor}' ? '<input type="color" data-p="bg" value="' + esc(f.bg) + '"' + dis + '>' : '') + '</div>';
+  } else {
+    h += '<div><label>تدوير الزوايا</label><select data-p="radius"' + dis + '>' + [[0, 'بلا'], [0.1, 'خفيف'], [0.19, 'متوسط'], [0.28, 'كبير']].map(function(o){ return '<option value="' + o[0] + '"' + (+(f.radius || 0) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
+    h += '<div><label>الهامش الأبيض</label><select data-p="quiet"' + dis + '>' + [2, 3, 4].map(function(q){ return '<option value="' + q + '"' + ((f.quiet == null ? 2 : f.quiet) === q ? ' selected' : '') + '>' + q + '</option>'; }).join('') + '</select></div>';
+    h += '<div style="grid-column:1/-1" class="mut">يُرسم الرمز مربعاً أبيض داخل الإطار. اتركه بحجم ٢٠ مم على الأقل في الطباعة ليُقرأ بسهولة.</div>';
+  }
+  h += '</div><div class="row" style="margin-top:12px"><button class="btn red sm" id="fDel"' + dis + '>حذف العنصر</button><button class="btn sec sm" id="fCenter"' + dis + '>توسيط أفقي</button></div>';
+  $('fProps').innerHTML = h;
+}
+$('fProps').addEventListener('change', function(e){
+  var f = curDesign().fields[dSelF], p = e.target.dataset.p; if (!f || !p) return;
+  var v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+  if (p === 'colorCat'){ f.color = v ? '{catColor}' : '#111111'; }
+  else if (p === 'bgMode'){ if (v === 'none') delete f.bg; else if (v === 'cat') f.bg = '{catColor}'; else f.bg = '#ffffff'; renderProps(); }
+  else if (p === 'weight' || p === 'lines' || p === 'radius' || p === 'quiet'){ f[p] = +v; }
+  else f[p] = v;
+  changed(); renderPreview(); renderFieldList();
+});
+$('fProps').addEventListener('click', function(e){
+  var d = curDesign(), f = d.fields[dSelF]; if (!f) return;
+  if (e.target.id === 'fDel'){ d.fields.splice(dSelF, 1); dSelF = -1; changed(); renderDesign(); }
+  if (e.target.id === 'fCenter'){ f.x = (1 - f.w) / 2; changed(); renderPreview(); }
+});
+
+var pvToken = 0;
+async function renderPreview(){
+  var my = ++pvToken, d = curDesign();
+  try {
+    var c = await G.renderPage(S.ev, samplePerson(), dPage, { dpi: 160, resolve: resolve, design: d });
+    if (my !== pvToken) return;
+    var pv = $('pv'); pv.width = c.width; pv.height = c.height; pv.getContext('2d').drawImage(c, 0, 0);
+  } catch(e){ toast(e.message); }
+  aspectCheck(); placeBoxes();
+}
+function aspectCheck(){
+  var pg = curDesign().pages[dPage], b = S.ev.badge, box = $('aspectWarn');
+  if (!pg || !pg.px){ box.innerHTML = ''; return; }
+  var want = (b.w + 2 * b.bleed) / (b.h + 2 * b.bleed), have = pg.px[0] / pg.px[1];
+  if (Math.abs(have / want - 1) < 0.02){ box.innerHTML = ''; return; }
+  var mmTxt = pg.mm ? ' (ملف الطباعة ' + pg.mm[0].toFixed(1) + ' × ' + pg.mm[1].toFixed(1) + ' مم)' : '';
+  box.innerHTML = '<div class="warnbox">نسبة أبعاد التصميم لا تطابق مقاس البطاقة مع النزف (' + (b.w + 2 * b.bleed) + ' × ' + (b.h + 2 * b.bleed) + ' مم)' + esc(mmTxt) + '، فسيبدو ممدداً. <button class="btn sm" id="fitSize">ضبط المقاس حسب التصميم</button></div>';
+}
+$('aspectWarn').addEventListener('click', function(e){
+  if (e.target.id !== 'fitSize') return;
+  var pg = curDesign().pages[dPage], b = S.ev.badge;
+  if (pg.mm){ b.w = +(pg.mm[0] - 2 * b.bleed).toFixed(1); b.h = +(pg.mm[1] - 2 * b.bleed).toFixed(1); }
+  else { var fullW = b.w + 2 * b.bleed; b.h = +((fullW * pg.px[1] / pg.px[0]) - 2 * b.bleed).toFixed(1); }
+  changed(); toast('المقاس الآن ' + b.w + ' × ' + b.h + ' مم مع نزف ' + b.bleed); renderDesign();
+});
+
+function placeBoxes(){
+  var ovl = $('ovl'), d = curDesign(), b = S.ev.badge;
+  var fw = b.w + 2 * b.bleed, fh = b.h + 2 * b.bleed;
+  var html = '<div class="trim" style="left:' + (b.bleed / fw * 100) + '%;top:' + (b.bleed / fh * 100) + '%;width:' + (b.w / fw * 100) + '%;height:' + (b.h / fh * 100) + '%"></div>';
+  fieldsOnPage().forEach(function(x){
+    var f = x.f;
+    html += '<div class="fbox' + (x.i === dSelF ? ' sel' : '') + '" data-i="' + x.i + '" style="left:' + f.x * 100 + '%;top:' + f.y * 100 + '%;width:' + f.w * 100 + '%;height:' + f.h * 100 + '%"><span class="lb">' + esc(TYPE_LABEL[f.type]) + '</span>' + (hasOwn() ? '<span class="h"></span>' : '') + '</div>';
+  });
+  ovl.innerHTML = html;
+}
+(function(){
+  var ovl = $('ovl');
+  ovl.addEventListener('pointerdown', function(e){
+    var box = e.target.closest('.fbox');
+    if (!box){ dSelF = -1; renderFieldList(); renderProps(); placeBoxes(); return; }
+    var i = +box.dataset.i, f = curDesign().fields[i];
+    if (dSelF !== i){ dSelF = i; renderFieldList(); renderProps(); }
+    document.querySelectorAll('.fbox').forEach(function(x){ x.classList.toggle('sel', x === box); });
+    if (!hasOwn()) return;
+    e.preventDefault();
+    var resize = e.target.classList.contains('h');
+    var r = ovl.getBoundingClientRect(), sx = e.clientX, sy = e.clientY, o = { x: f.x, y: f.y, w: f.w, h: f.h };
+    var ratio = pageRatio();
+    box.setPointerCapture(e.pointerId);
+    function mv(ev2){
+      var dx = (ev2.clientX - sx) / r.width, dy = (ev2.clientY - sy) / r.height;
+      if (resize){
+        f.w = clamp(o.w + dx, 0.03, 1.2);
+        f.h = f.type === 'qr' ? f.w * ratio : clamp(o.h + dy, 0.02, 1.2);
+      } else { f.x = clamp(o.x + dx, -0.2, 1.1 - f.w * 0.2); f.y = clamp(o.y + dy, -0.2, 1.1 - f.h * 0.2); }
+      box.style.left = f.x * 100 + '%'; box.style.top = f.y * 100 + '%'; box.style.width = f.w * 100 + '%'; box.style.height = f.h * 100 + '%';
+    }
+    function up(){
+      box.removeEventListener('pointermove', mv); box.removeEventListener('pointerup', up); box.removeEventListener('pointercancel', up);
+      ['x', 'y', 'w', 'h'].forEach(function(k){ f[k] = Math.round(f[k] * 10000) / 10000; });
+      changed(); renderPreview();
+    }
+    box.addEventListener('pointermove', mv); box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+  });
+  document.addEventListener('keydown', function(e){
+    if (curTab() !== 'design' || dSelF < 0 || !hasOwn() || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    var f = curDesign().fields[dSelF]; if (!f) return;
+    var st = e.shiftKey ? 0.01 : 0.002, m = { ArrowLeft: [-st, 0], ArrowRight: [st, 0], ArrowUp: [0, -st], ArrowDown: [0, st] }[e.key];
+    if (!m) return; e.preventDefault(); f.x += m[0]; f.y += m[1]; changed(); placeBoxes(); clearTimeout(this.kt); this.kt = setTimeout(renderPreview, 200);
+  });
+})();
+
+/* =================================================================
+   BADGES TAB
+   ================================================================= */
+function selectedPeople(catKey){
+  var order = {}; S.ev.categories.forEach(function(c, i){ order[c.key] = i; });
+  return S.ev.people.filter(function(p){ return !catKey || p.cat === catKey; }).slice().sort(function(a, b){
+    return (order[a.cat] - order[b.cat]) || a.id.localeCompare(b.id, 'en', { numeric: true });
+  });
+}
+function renderBadges(){ $('bCat').innerHTML = catOptions($('bCat').value, true); }
+function progress(on, v, txt){ $('bProg').style.display = on ? 'block' : 'none'; $('bBar').value = v || 0; $('bProgTxt').textContent = txt || ''; }
+async function buildPdf(list, dpi, marks){
+  var jsPDF = window.jspdf.jsPDF, b = S.ev.badge, m = marks ? 6 : 0;
+  var fw = b.w + 2 * b.bleed, fh = b.h + 2 * b.bleed, pw = fw + 2 * m, ph = fh + 2 * m;
+  var orient = pw > ph ? 'l' : 'p';
+  var doc = new jsPDF({ unit: 'mm', format: [pw, ph], orientation: orient, compress: true });
+  var total = list.reduce(function(s, p){ return s + G.pageCount(S.ev, p); }, 0), done = 0, first = true;
+  for (var i = 0; i < list.length; i++){
+    var p = list[i], n = G.pageCount(S.ev, p);
+    for (var k = 0; k < n; k++){
+      if (!first) doc.addPage([pw, ph], orient); first = false;
+      var c = await G.renderPage(S.ev, p, k, { dpi: dpi, resolve: resolve });
+      doc.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', m, m, fw, fh, undefined, 'FAST');
+      if (marks){
+        doc.setLineWidth(0.1); doc.setDrawColor(0);
+        var x0 = m + b.bleed, x1 = x0 + b.w, y0 = m + b.bleed, y1 = y0 + b.h, L = m - 1;
+        [x0, x1].forEach(function(x){ doc.line(x, 0.5, x, 0.5 + L - 0.5); doc.line(x, ph - 0.5, x, ph - L); });
+        [y0, y1].forEach(function(y){ doc.line(0.5, y, 0.5 + L - 0.5, y); doc.line(pw - 0.5, y, pw - L, y); });
+      }
+      done++; progress(true, done / total, 'صفحة ' + done + ' من ' + total);
+      if (done % 4 === 0) await sleep(0);
+    }
+  }
+  return doc.output('blob');
+}
+function download(blob, name){ var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(a.href); }, 60000); }
+$('bPdf').onclick = async function(){
+  var list = selectedPeople($('bCat').value); if (!list.length){ toast('لا أسماء'); return; }
+  this.disabled = true;
+  try {
+    var blob = await buildPdf(list, +$('bDpi').value, $('bMarks').checked);
+    var cat = $('bCat').value ? ' - ' + G.cat(S.ev, $('bCat').value).label : '';
+    download(blob, 'طباعة ' + S.ev.code + cat + ' - ' + list.length + ' بطاقة.pdf');
+    progress(true, 1, 'جاهز: ' + list.length + ' بطاقة (' + (blob.size / 1048576).toFixed(1) + ' ميغابايت)');
+  } catch(e){ progress(true, 0, 'خطأ: ' + e.message); }
+  this.disabled = false;
+};
+$('bZip').onclick = async function(){
+  var list = selectedPeople($('bCat').value); if (!list.length){ toast('لا أسماء'); return; }
+  this.disabled = true;
+  try {
+    var zip = new JSZip(), dpi = +$('bDpi').value;
+    for (var i = 0; i < list.length; i++){
+      var p = list[i], n = G.pageCount(S.ev, p), folder = zip.folder(G.cat(S.ev, p.cat).label);
+      for (var k = 0; k < n; k++){
+        var c = await G.renderPage(S.ev, p, k, { dpi: dpi, trim: true, resolve: resolve });
+        folder.file(G.fileName(p, n > 1 ? ' - ' + (k + 1) : '') + '.jpg', await canvasBlob(c, 'image/jpeg', 0.92));
+      }
+      progress(true, (i + 1) / list.length, (i + 1) + ' من ' + list.length);
+      if (i % 3 === 0) await sleep(0);
+    }
+    progress(true, 1, 'جارٍ ضغط الملف…');
+    var blob = await zip.generateAsync({ type: 'blob' });
+    download(blob, 'بطاقات ' + S.ev.code + ' - ' + list.length + '.zip');
+    progress(true, 1, 'جاهز: ' + list.length + ' بطاقة');
+  } catch(e){ progress(true, 0, 'خطأ: ' + e.message); }
+  this.disabled = false;
+};
+$('bPrev').onclick = async function(){
+  var list = selectedPeople($('bCat').value).slice(0, 12), out = '';
+  $('thumbs').innerHTML = '<span class="mut">جارٍ الرسم…</span>';
+  for (var i = 0; i < list.length; i++){
+    var p = list[i], n = G.pageCount(S.ev, p);
+    for (var k = 0; k < n; k++){
+      var c = await G.renderPage(S.ev, p, k, { dpi: 110, trim: true, resolve: resolve });
+      out += '<figure><img src="' + c.toDataURL('image/jpeg', 0.85) + '"><figcaption>' + esc(p.name) + (n > 1 ? ' — ' + (k + 1) : '') + '</figcaption></figure>';
+    }
+  }
+  $('thumbs').innerHTML = out || '<span class="mut">لا أسماء</span>';
+};
+
+/* =================================================================
+   SEND TAB
+   ================================================================= */
+function intlPhone(raw){
+  var d = String(raw || '').replace(/[^\d+]/g, '');
+  if (!d) return '';
+  var cc = String(S.msg.cc || '').replace(/\D/g, '');
+  if (d[0] === '+') return d.slice(1);
+  if (d.indexOf('00') === 0) return d.slice(2);
+  if (d[0] === '0') return cc + d.slice(1);
+  if (cc && d.indexOf(cc) === 0) return d;
+  if (d.length <= 10) return cc + d;
+  return d;
+}
+function fillMsg(tpl, p){
+  return String(tpl).replace(/\{الاسم\}/g, p.name).replace(/\{الفعالية\}/g, S.ev.name)
+    .replace(/\{التاريخ\}/g, S.ev.days.length ? G.arDate(S.ev.days[0]) : '').replace(/\{الرابط\}/g, G.badgeLink(p, S.msg.base))
+    .replace(/\{الفئة\}/g, G.cat(S.ev, p.cat).label).replace(/\{الجهة\}/g, S.ev.org);
+}
+function renderSend(){
+  $('msgBody').value = S.msg.body; $('msgSubj').value = S.msg.subj; $('msgCC').value = S.msg.cc; $('msgBase').value = S.msg.base;
+  var dirty = pubHash() !== S.publishedHash;
+  $('sendNote').className = dirty ? 'warnbox' : 'note';
+  $('sendNote').textContent = dirty ? 'لديك تغييرات غير منشورة: انشرها أولاً وإلا لن تعمل روابط البطاقات الجديدة.' : 'كل رابط يفتح صفحة فيها بطاقة الشخص جاهزة للحفظ والعرض عند الباب.';
+  var f = $('sFilter').value, q = G.normName($('sSearch').value);
+  var all = S.ev.people;
+  var sentAny = function(p){ return p.sent && (p.sent.wa || p.sent.mail || p.sent.share); };
+  $('sCounts').innerHTML = '<span>أُرسل لـ ' + all.filter(sentAny).length + ' من ' + all.length + '</span><span>لديهم هاتف: ' + all.filter(function(p){ return p.phone; }).length + '</span><span>لديهم بريد: ' + all.filter(function(p){ return p.email; }).length + '</span>';
+  var list = all.filter(function(p){
+    if (q && G.normName(p.name).indexOf(q) < 0) return false;
+    if (f === 'pending') return !sentAny(p);
+    if (f === 'phone') return !!p.phone;
+    if (f === 'email') return !!p.email;
+    if (f === 'none') return !p.phone && !p.email;
+    return true;
+  });
+  var share = !!(navigator.canShare && navigator.share);
+  $('sBody').innerHTML = list.map(function(p){
+    var st = [];
+    if (p.sent && p.sent.wa) st.push('واتساب ✓'); if (p.sent && p.sent.mail) st.push('بريد ✓'); if (p.sent && p.sent.share) st.push('مشاركة ✓');
+    return '<tr data-id="' + esc(p.id) + '"><td>' + esc(p.name) + '<div class="mut">' + esc(p.id) + ' · ' + esc(G.cat(S.ev, p.cat).label) + '</div></td><td dir="ltr" style="text-align:right">' + esc(p.phone || '—') + '</td><td dir="ltr" style="text-align:right">' + esc(p.email || '—') + '</td><td class="row" style="flex-wrap:nowrap">' +
+      (p.phone ? '<button class="btn sm" data-s="wa" style="background:#16a34a">واتساب</button>' : '') +
+      (p.email ? '<button class="btn sm" data-s="mail">بريد</button>' : '') +
+      (share ? '<button class="btn sec sm" data-s="share">مشاركة الصورة</button>' : '') +
+      '<button class="btn sec sm" data-s="copy">نسخ الرابط</button></td><td class="sent">' + st.join('<br>') + (st.length ? ' <a href="#" data-s="reset" class="mut">↺</a>' : '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="5" class="mut" style="padding:20px;text-align:center">لا نتائج</td></tr>';
+}
+['msgBody', 'msgSubj', 'msgCC', 'msgBase'].forEach(function(id){
+  $(id).addEventListener('change', function(){ var k = { msgBody: 'body', msgSubj: 'subj', msgCC: 'cc', msgBase: 'base' }[id]; S.msg[k] = this.value; if (k === 'base' && !/\/$/.test(S.msg.base)) S.msg.base += '/'; changed(); });
+});
+['sFilter', 'sSearch'].forEach(function(id){ $(id).addEventListener('input', renderSend); });
+$('sBody').addEventListener('click', async function(e){
+  var b = e.target.closest('[data-s]'); if (!b) return; e.preventDefault();
+  var p = personById(b.closest('tr').dataset.id); if (!p) return;
+  var a = b.dataset.s, msg = fillMsg(S.msg.body, p);
+  p.sent = p.sent || {};
+  if (a === 'wa'){ window.open('https://wa.me/' + intlPhone(p.phone) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener'); p.sent.wa = Date.now(); }
+  if (a === 'mail'){ location.href = 'mailto:' + encodeURIComponent(p.email) + '?subject=' + encodeURIComponent(fillMsg(S.msg.subj, p)) + '&body=' + encodeURIComponent(msg); p.sent.mail = Date.now(); }
+  if (a === 'copy'){ try { await navigator.clipboard.writeText(G.badgeLink(p, S.msg.base)); toast('نُسخ الرابط'); } catch(err){ toast(G.badgeLink(p, S.msg.base)); } return; }
+  if (a === 'reset'){ p.sent = {}; }
+  if (a === 'share'){
+    var c = await G.renderPage(S.ev, p, G.qrPage(S.ev, p), { dpi: 300, trim: true, resolve: resolve });
+    var file = new File([await canvasBlob(c, 'image/png')], G.fileName(p) + '.png', { type: 'image/png' });
+    try { await navigator.share({ files: [file], text: msg }); p.sent.share = Date.now(); } catch(err){ return; }
+  }
+  changed(); renderSend();
+});
+$('sExport').onclick = function(){
+  var rows = [['المعرف', 'الاسم', 'الفئة', 'الهاتف الدولي', 'البريد', 'الرابط', 'عنوان البريد', 'الرسالة']].concat(S.ev.people.map(function(p){
+    return [p.id, p.name, G.cat(S.ev, p.cat).label, p.phone ? intlPhone(p.phone) : '', p.email || '', G.badgeLink(p, S.msg.base), fillMsg(S.msg.subj, p), fillMsg(S.msg.body, p)];
+  }));
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'المراسلة'); wb.Workbook = { Views: [{ RTL: true }] };
+  XLSX.writeFile(wb, 'قائمة المراسلة ' + S.ev.code + '.xlsx');
+};
+
+/* =================================================================
+   PUBLISH TAB
+   ================================================================= */
+function renderPublish(){
+  var dirty = pubHash() !== S.publishedHash;
+  $('pubState').innerHTML = dirty ? '<div class="warnbox">لديك تغييرات محلية لم تُنشر بعد. الهواتف وروابط البطاقات ترى آخر نسخة منشورة فقط.</div>' : '<div class="note">النسخة المحلية مطابقة للمنشورة' + (S.publishedAt ? ' (آخر نشر ' + new Date(S.publishedAt).toLocaleString('ar-SY') + ')' : '') + '.</div>';
+  $('ghOwner').value = S.gh.owner; $('ghRepo').value = S.gh.repo; $('ghBranch').value = S.gh.branch;
+  var t = ''; try { t = localStorage.getItem('gate-admin:ghToken') || ''; } catch(e){}
+  if (t && !$('ghToken').value){ $('ghToken').value = t; $('ghRemember').checked = true; }
+}
+['ghOwner', 'ghRepo', 'ghBranch'].forEach(function(id){ $(id).addEventListener('change', function(){ S.gh[{ ghOwner: 'owner', ghRepo: 'repo', ghBranch: 'branch' }[id]] = this.value.trim(); changed(); }); });
+function referencedTemplates(){
+  var set = {};
+  Object.keys(S.ev.designs).forEach(function(k){ (S.ev.designs[k].pages || []).forEach(function(p){ if (p.src) set[p.src] = 1; }); });
+  return Object.keys(set);
+}
+function eventJsonText(){ var e = publicEvent(S.ev); e.updated = new Date().toISOString(); return JSON.stringify(e, null, 1); }
+function b64(blob){ return new Promise(function(res, rej){ var r = new FileReader(); r.onload = function(){ res(String(r.result).split(',')[1]); }; r.onerror = rej; r.readAsDataURL(blob); }); }
+async function templateBlob(path){
+  var b = await DB.get('files', path); if (b) return b;
+  var r = await fetch(path, { cache: 'no-store' }); if (!r.ok) throw new Error('الملف غير متوفر محلياً: ' + path); return r.blob();
+}
+$('pubBtn').onclick = async function(){
+  var token = $('ghToken').value.trim(), o = S.gh.owner, r = S.gh.repo, br = S.gh.branch || 'main';
+  if (!token){ toast('أدخل رمز الوصول'); $('ghToken').focus(); return; }
+  try { if ($('ghRemember').checked) localStorage.setItem('gate-admin:ghToken', token); else localStorage.removeItem('gate-admin:ghToken'); } catch(e){}
+  var log = $('pubLog'); log.textContent = '';
+  var say = function(t){ log.textContent += t + '\n'; };
+  async function gh(path, opt){
+    opt = opt || {};
+    var res = await fetch('https://api.github.com' + path, { method: opt.method || 'GET', body: opt.body ? JSON.stringify(opt.body) : undefined,
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+    if (!res.ok){ var j = await res.json().catch(function(){ return {}; }); throw new Error(res.status + ' ' + (j.message || '')); }
+    return res.json();
+  }
+  this.disabled = true;
+  try {
+    var base = '/repos/' + encodeURIComponent(o) + '/' + encodeURIComponent(r);
+    say('قراءة المستودع…');
+    var ref = await gh(base + '/git/ref/heads/' + encodeURIComponent(br));
+    var head = ref.object.sha;
+    var commit = await gh(base + '/git/commits/' + head);
+    var tree = await gh(base + '/git/trees/' + commit.tree.sha + '?recursive=1');
+    var existing = {}; tree.tree.forEach(function(t){ if (t.type === 'blob') existing[t.path] = t.sha; });
+    var entries = [];
+    var evBlob = await gh(base + '/git/blobs', { method: 'POST', body: { content: eventJsonText(), encoding: 'utf-8' } });
+    entries.push({ path: 'event.json', mode: '100644', type: 'blob', sha: evBlob.sha });
+    var refs = referencedTemplates(), up = 0, rm = 0;
+    for (var i = 0; i < refs.length; i++){
+      if (existing[refs[i]]) continue;
+      say('رفع ' + refs[i] + '…');
+      var bl = await gh(base + '/git/blobs', { method: 'POST', body: { content: await b64(await templateBlob(refs[i])), encoding: 'base64' } });
+      entries.push({ path: refs[i], mode: '100644', type: 'blob', sha: bl.sha }); up++;
+    }
+    Object.keys(existing).forEach(function(pth){ if (pth.indexOf('templates/') === 0 && refs.indexOf(pth) < 0){ entries.push({ path: pth, mode: '100644', type: 'blob', sha: null }); rm++; } });
+    var nt = await gh(base + '/git/trees', { method: 'POST', body: { base_tree: commit.tree.sha, tree: entries } });
+    var nc = await gh(base + '/git/commits', { method: 'POST', body: { message: 'تحديث الفعالية ' + S.ev.code + ': ' + S.ev.people.length + ' اسم', tree: nt.sha, parents: [head] } });
+    await gh(base + '/git/refs/heads/' + encodeURIComponent(br), { method: 'PATCH', body: { sha: nc.sha } });
+    S.publishedHash = pubHash(); S.publishedAt = Date.now(); changed();
+    say('تم النشر ✓ (' + S.ev.people.length + ' اسم، ' + up + ' ملف تصميم جديد' + (rm ? '، حُذف ' + rm + ' ملف قديم' : '') + ').\nيظهر التحديث على الموقع والهواتف خلال دقيقة أو دقيقتين.');
+    renderPublish(); renderHeader();
+  } catch(e){
+    say('فشل النشر: ' + e.message + (/401|403/.test(e.message) ? '\nتحقق من رمز الوصول وصلاحية «المحتويات: قراءة وكتابة» على هذا المستودع.' : /404/.test(e.message) ? '\nتحقق من اسم الحساب والمستودع والفرع، ومن أن الرمز يشمل هذا المستودع.' : ''));
+  }
+  this.disabled = false;
+};
+$('pubZip').onclick = async function(){
+  var zip = new JSZip(); zip.file('event.json', eventJsonText());
+  var refs = referencedTemplates();
+  for (var i = 0; i < refs.length; i++){ try { zip.file(refs[i], await templateBlob(refs[i])); } catch(e){ toast(e.message); } }
+  download(await zip.generateAsync({ type: 'blob' }), 'ملفات النشر ' + S.ev.code + '.zip');
+  toast('ارفع محتويات الملف إلى جذر المستودع مع الاحتفاظ بمجلد القوالب');
+};
+$('pullBtn').onclick = async function(){
+  var f = await ask('<p>تحميل آخر نسخة منشورة واستبدال البيانات المحلية بها؟ تبقى الهواتف والبريد المحفوظة هنا.</p>', 'تحميل'); if (!f) return;
+  try {
+    var ev = await loadPublished(), old = {};
+    S.ev.people.forEach(function(p){ old[p.id] = p; });
+    ev.people.forEach(function(p){ var o = old[p.id]; if (o){ p.phone = o.phone; p.email = o.email; p.sent = o.sent; } });
+    S.ev = ev; S.publishedHash = pubHash(); changed(); renderAll(); toast('تم التحميل: ' + ev.people.length + ' اسم');
+  } catch(e){ toast('تعذر التحميل: ' + e.message); }
+};
+
+window.addEventListener('beforeunload', function(e){ if (S && pubHash() !== S.publishedHash){ e.preventDefault(); e.returnValue = ''; } });
+await init();
+window.__admin = { get S(){ return S; }, buildPdf: buildPdf, resolve: resolve, renderAll: renderAll };
+})();
+</script>
+</body>
+</html>

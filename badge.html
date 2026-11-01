@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="icon-180.png">
+<link rel="stylesheet" href="lib/fonts.css">
+<title>دعوتي</title>
+<style>
+:root{--bg:#f1f5f9;--ink:#0f172a;--mut:#64748b;--pri:#2563eb;--line:#e2e8f0}
+*{box-sizing:border-box}
+body{margin:0;font-family:Cairo,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:20px;margin:0 0 4px}
+.mut{color:var(--mut);font-size:14px}
+.pages{display:flex;flex-direction:column;gap:14px;margin:18px 0}
+.pg{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;text-align:center}
+.pg img{max-width:100%;max-height:70vh;border-radius:8px;box-shadow:0 4px 18px rgba(15,23,42,.15)}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+button,a.btn{font:inherit;border:0;border-radius:12px;padding:10px 16px;background:var(--pri);color:#fff;font-weight:700;text-decoration:none;font-size:15px}
+button.sec{background:#e2e8f0;color:var(--ink)}
+.note{background:#e0f2fe;border:1px solid #bae6fd;border-radius:12px;padding:12px;font-size:14px}
+.err{background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">جارٍ التحميل…</h1>
+  <div class="mut" id="sub"></div>
+  <div class="pg" id="entry" style="display:none;margin-top:16px">
+    <div style="font-weight:700;margin-bottom:8px">رمز الدخول</div>
+    <canvas id="bigqr" width="640" height="640" style="width:min(270px,80vw);height:auto;image-rendering:pixelated"></canvas>
+    <div class="mut" style="margin-top:6px">اعرض هذا الرمز عند الباب، وارفع سطوع الشاشة ليُقرأ بسرعة.</div>
+  </div>
+  <div class="pages" id="pages"></div>
+</div>
+<script src="lib/qrcode.js"></script>
+<script src="lib/common.js"></script>
+<script>
+window.addEventListener('hashchange', function(){ location.reload(); });
+(async function(){
+  var G = window.GATE, $ = function(id){ return document.getElementById(id); };
+  var m = location.hash.match(/t=([a-z0-9]+)/i);
+  function fail(msg){ $('title').textContent = 'تعذر العرض'; $('pages').innerHTML = '<div class="err">' + G.esc(msg) + '</div>'; }
+  if (!m) return fail('الرابط غير مكتمل. تأكد من فتح الرابط كما وصلك.');
+  try {
+    var ev = await G.loadEvent();
+    var p = ev.people.find(function(x){ return x.t === m[1]; });
+    if (!p) return fail('لم نجد هذه الدعوة. ربما أُلغيت أو تغيّر الرابط؛ تواصل مع المنظمين.');
+    var L = ev.docLabel || 'البطاقة';
+    $('title').textContent = p.name;
+    $('sub').textContent = ev.name + (ev.days.length ? ' — ' + G.arDate(ev.days[0]) : '');
+    document.title = L.replace(/^ال/, '') + ' ' + p.name;
+    var qc = $('bigqr'); G.drawQR(qc.getContext('2d'), G.payload(ev, p), 0, 0, qc.width, { quiet: 3 });
+    $('entry').style.display = 'block';
+    await G.fontsReady();
+    var n = G.pageCount(ev, p), qp = G.qrPage(ev, p), order = [qp];
+    for (var i = 0; i < n; i++) if (i !== qp) order.push(i);
+    for (var k = 0; k < order.length; k++){
+      var c = await G.renderPage(ev, p, order[k], { dpi: 300, trim: true });
+      var blob = await new Promise(function(r){ c.toBlob(r, 'image/jpeg', 0.9); });
+      var url = URL.createObjectURL(blob);
+      var name = G.fileName(p, n > 1 ? ' - ' + (order[k] + 1) : '') + '.jpg';
+      var div = document.createElement('div'); div.className = 'pg';
+      div.innerHTML = '<img alt=""><div class="row"><a class="btn" download></a></div>';
+      div.querySelector('img').src = url; div.querySelector('img').alt = L;
+      var a = div.querySelector('a'); a.href = url; a.download = name; a.textContent = 'حفظ ' + L + (n > 1 ? ' — الوجه ' + (k + 1) : '');
+      var f = new File([blob], name, { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [f] })){
+        var b = document.createElement('button'); b.className = 'sec'; b.textContent = 'مشاركة';
+        (function(file){ b.onclick = function(){ navigator.share({ files: [file], title: ev.name }).catch(function(){}); }; })(f);
+        div.querySelector('.row').appendChild(b);
+      }
+      $('pages').appendChild(div);
+    }
+  } catch (e) { fail('تحقق من اتصالك بالإنترنت ثم أعد فتح الرابط.'); }
+})();
+</script>
+</body>
+</html>

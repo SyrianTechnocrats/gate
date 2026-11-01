@@ -1,0 +1,98 @@
+{
+ "version": 5,
+ "code": "OBOUR26",
+ "name": "ملتقى عبور",
+ "org": "التكنوقراط السوريون",
+ "days": [
+  "2026-12-05"
+ ],
+ "categories": [
+  {
+   "key": "att",
+   "label": "حضور",
+   "color": "#2563eb",
+   "prefix": "A"
+  },
+  {
+   "key": "spk",
+   "label": "متحدث",
+   "color": "#1e3a8a",
+   "prefix": "S"
+  },
+  {
+   "key": "org",
+   "label": "منظم",
+   "color": "#0f766e",
+   "prefix": "O"
+  },
+  {
+   "key": "vol",
+   "label": "متطوع",
+   "color": "#b45309",
+   "prefix": "V"
+  }
+ ],
+ "badge": {
+  "w": 135.5,
+  "h": 169.375,
+  "bleed": 0
+ },
+ "designs": {
+  "*": {
+   "pages": [
+    {
+     "src": "templates/edc30e600cae35c3.jpg",
+     "bg": "#1b2a44",
+     "px": [
+      1800,
+      2250
+     ]
+    }
+   ],
+   "fields": [
+    {
+     "type": "name",
+     "page": 0,
+     "x": 0.08,
+     "y": 0.325,
+     "w": 0.84,
+     "h": 0.12,
+     "color": "#10beea",
+     "font": "Cairo",
+     "weight": 700,
+     "align": "center",
+     "lines": 2,
+     "scale": 0.42
+    },
+    {
+     "type": "qr",
+     "page": 0,
+     "x": 0.08311,
+     "y": 0.81262,
+     "w": 0.11222,
+     "h": 0.08978,
+     "radius": 0.19,
+     "quiet": 3
+    }
+   ]
+  }
+ },
+ "people": [],
+ "counters": {},
+ "syncUrl": "",
+ "cooldownSec": 30,
+ "updated": "2026-11-01T12:00:00.000Z",
+ "docLabel": "الدعوة",
+ "nameColors": [
+  {
+   "key": "b",
+   "label": "أزرق",
+   "color": "#10beea"
+  },
+  {
+   "key": "w",
+   "label": "أبيض",
+   "color": "#ffffff"
+  }
+ ]
+}
