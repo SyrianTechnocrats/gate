@@ -175,7 +175,7 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
 <section class="tab" id="t-people">
   <div class="card">
     <h2>استيراد من ملف إكسل</h2>
-    <p class="mut">الأعمدة المقروءة تلقائياً: الاسم، الفئة، اللون (أبيض أو أزرق)، الهاتف أو واتساب، البريد. الهاتف والبريد يبقيان على هذا الجهاز فقط ولا يُنشران.</p>
+    <p class="mut">الأعمدة المقروءة تلقائياً: الاسم، المسمى الوظيفي (أو المنصب أو الصفة)، الفئة، اللون (أبيض أو أزرق)، الهاتف أو واتساب، البريد. الهاتف والبريد يبقيان على هذا الجهاز فقط ولا يُنشران.</p>
     <div class="row">
       <input type="file" id="impFile" accept=".xlsx,.xls,.csv" style="max-width:320px">
       <div><label>فئة الأسماء التي بلا فئة</label><select id="impDefCat"></select></div>
@@ -188,6 +188,7 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
     <h2>إضافة اسم</h2>
     <div class="row">
       <input id="addName" class="grow" placeholder="الاسم الكامل" style="min-width:200px">
+      <input id="addTitle" placeholder="المسمى الوظيفي (اختياري)" style="max-width:240px">
       <select id="addCat" style="max-width:160px"></select>
       <select id="addNc" style="max-width:150px"></select>
       <input id="addPhone" placeholder="الهاتف" dir="ltr" style="max-width:170px">
@@ -205,7 +206,7 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
       <button class="btn red sm" id="pClear">حذف الكل</button>
     </div>
     <div class="counts" id="pCounts"></div>
-    <div class="tblwrap"><table><thead><tr><th>المعرّف</th><th>الاسم</th><th>الفئة</th><th class="ncCol">لون الاسم</th><th>الهاتف</th><th>البريد</th><th></th></tr></thead><tbody id="pBody"></tbody></table></div>
+    <div class="tblwrap"><table><thead><tr><th>المعرّف</th><th>الاسم</th><th>المسمى الوظيفي</th><th>الفئة</th><th class="ncCol">لون الاسم</th><th>الهاتف</th><th>البريد</th><th></th></tr></thead><tbody id="pBody"></tbody></table></div>
   </div>
 </section>
 
@@ -217,6 +218,7 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
       <div id="dOwnBox"></div>
       <div class="grow"></div>
       <div><label>اسم للمعاينة</label><input id="dSample" placeholder="اكتب اسماً طويلاً للتجربة" style="min-width:240px"></div>
+      <div><label>مسمى للمعاينة</label><input id="dSampleTitle" placeholder="مثال: رئيس هيئة التميز والإبداع" style="min-width:220px"></div>
       <div><label>لون الاسم للمعاينة</label><select id="dSampleNc" style="min-width:140px"></select></div>
     </div>
   </div>
@@ -337,7 +339,7 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
 <script src="lib/xlsx.full.min.js"></script>
 <script src="lib/jspdf.umd.min.js"></script>
 <script src="lib/jszip.min.js"></script>
-<script src="lib/common.js?v=6"></script>
+<script src="lib/common.js?v=7"></script>
 <script>
 (async function(){
 'use strict';
@@ -392,7 +394,7 @@ function guessGh(){
 /* Plain (pre-encryption) view of what gets published; used to detect unpublished changes. */
 function publicEvent(ev){
   var e = JSON.parse(JSON.stringify(ev));
-  e.people = ev.people.map(function(p){ var o = { id: p.id, name: p.name, cat: p.cat, t: p.t, ck: p.ck }; if (p.nc) o.nc = p.nc; return o; });
+  e.people = ev.people.map(function(p){ var o = { id: p.id, name: p.name, cat: p.cat, t: p.t, ck: p.ck }; if (p.nc) o.nc = p.nc; if (p.title) o.title = p.title; return o; });
   delete e.updated; delete e.secure;
   return e;
 }
@@ -673,12 +675,13 @@ function renderPeople(){
   $('pBody').innerHTML = list.map(function(p){
     return '<tr data-id="' + esc(p.id) + '"><td dir="ltr" style="text-align:right">' + esc(p.id) + '</td>' +
       '<td><input data-k="name" value="' + esc(p.name) + '"></td>' +
+      '<td><input data-k="title" value="' + esc(p.title || '') + '" placeholder="—"></td>' +
       '<td><select data-k="cat">' + catOptions(p.cat) + '</select></td>' +
       '<td class="ncCol"' + (hasNc ? '' : ' style="display:none"') + '><select data-k="nc">' + ncOptions(p.nc) + '</select></td>' +
       '<td><input data-k="phone" dir="ltr" value="' + esc(p.phone || '') + '" style="width:150px"></td>' +
       '<td><input data-k="email" dir="ltr" value="' + esc(p.email || '') + '" style="width:200px"></td>' +
       '<td class="row" style="flex-wrap:nowrap"><button class="btn sec sm" data-act="view">البطاقة</button><button class="btn red sm" data-act="del">حذف</button></td></tr>';
-  }).join('') || '<tr><td colspan="7" class="mut" style="padding:20px;text-align:center">لا أسماء بعد — استورد ملفاً أو أضف اسماً</td></tr>';
+  }).join('') || '<tr><td colspan="8" class="mut" style="padding:20px;text-align:center">لا أسماء بعد — استورد ملفاً أو أضف اسماً</td></tr>';
 }
 ['pSearch', 'pFilter'].forEach(function(id){ $(id).addEventListener('input', renderPeople); });
 function personById(id){ return S.ev.people.find(function(p){ return p.id === id; }); }
@@ -693,7 +696,7 @@ $('pBody').addEventListener('change', function(e){
     p.sent = {}; changed(); renderPeople(); return;
   }
   if (k === 'nc'){ if (v) p.nc = v; else delete p.nc; p.sent = {}; changed(); return; }
-  p[k] = v; if (k === 'name') p.sent = {};
+  p[k] = v; if (k === 'name' || k === 'title') p.sent = {};
   changed();
 });
 $('pBody').addEventListener('click', async function(e){
@@ -714,8 +717,9 @@ $('addBtn').onclick = function(){
   if (S.ev.people.some(function(p){ return G.normName(p.name) === G.normName(n) && p.cat === cat; })){ toast('هذا الاسم موجود في الفئة نفسها'); return; }
   var np = newPerson({ id: G.nextId(S.ev, cat), name: n, cat: cat, phone: $('addPhone').value.trim(), email: $('addEmail').value.trim() });
   if ($('addNc').value) np.nc = $('addNc').value;
+  if ($('addTitle').value.trim()) np.title = $('addTitle').value.trim().replace(/\s+/g, ' ');
   S.ev.people.push(np);
-  $('addName').value = ''; $('addPhone').value = ''; $('addEmail').value = '';
+  $('addName').value = ''; $('addTitle').value = ''; $('addPhone').value = ''; $('addEmail').value = '';
   changed(); renderPeople(); $('addName').focus();
 };
 $('addName').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('addBtn').click(); });
@@ -726,7 +730,7 @@ $('pClear').onclick = async function(){
 };
 $('pExport').onclick = function(){
   var ncL = function(p){ var c = S.ev.nameColors.find(function(x){ return x.key === p.nc; }); return c ? c.label : ''; };
-  var rows = [['المعرف', 'الاسم', 'الفئة', 'اللون', 'الهاتف', 'البريد', 'الرابط']].concat(S.ev.people.map(function(p){ return [p.id, p.name, G.cat(S.ev, p.cat).label, ncL(p), p.phone || '', p.email || '', G.badgeLink(p, S.msg.base)]; }));
+  var rows = [['المعرف', 'الاسم', 'المسمى الوظيفي', 'الفئة', 'اللون', 'الهاتف', 'البريد', 'الرابط']].concat(S.ev.people.map(function(p){ return [p.id, p.name, p.title || '', G.cat(S.ev, p.cat).label, ncL(p), p.phone || '', p.email || '', G.badgeLink(p, S.msg.base)]; }));
   var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'الأسماء'); wb.Workbook = { Views: [{ RTL: true }] };
   XLSX.writeFile(wb, 'أسماء ' + S.ev.code + ' - ' + G.dstr() + '.xlsx');
 };
@@ -735,7 +739,8 @@ $('pExport').onclick = function(){
 var COLS = {
   id: /^(المعرف|المعرّف|id|code|الرمز)$/i,
   name: /(الاسم|اسم|name|full ?name|الاسم الكامل)/i,
-  cat: /(الفئة|فئة|النوع|الصفة|category|type|role)/i,
+  cat: /(الفئة|فئة|النوع|category|type)/i,
+  title: /(المسمى|مسمى|المنصب|منصب|الوظيفة|وظيفة|الصفة|المهنة|title|position|job|role)/i,
   phone: /(هاتف|جوال|موبايل|واتس|رقم|phone|mobile|whatsapp|tel)/i,
   email: /(بريد|ايميل|إيميل|email|e-mail|mail)/i,
   color: /(لون|اللون|colou?r)/i
@@ -759,7 +764,7 @@ $('impFile').onchange = async function(){
     var hi = -1, map = {};
     for (var r = 0; r < Math.min(10, rows.length) && hi < 0; r++){
       var m = {};
-      rows[r].forEach(function(h, ci){ h = String(h).trim(); Object.keys(COLS).forEach(function(k){ if (m[k] == null && COLS[k].test(h)){ if (k === 'name' && (COLS.email.test(h) || COLS.color.test(h))) return; if (k === 'phone' && COLS.color.test(h)) return; m[k] = ci; } }); });
+      rows[r].forEach(function(h, ci){ h = String(h).trim(); Object.keys(COLS).forEach(function(k){ if (m[k] == null && COLS[k].test(h)){ if (k === 'name' && (COLS.email.test(h) || COLS.color.test(h) || COLS.title.test(h))) return; if (k === 'phone' && COLS.color.test(h)) return; m[k] = ci; } }); });
       if (m.name != null){ hi = r; map = m; }
     }
     if (hi < 0){ hi = -1; map = { name: 0 }; }
@@ -770,10 +775,10 @@ $('impFile').onchange = async function(){
       var catRaw = map.cat != null ? String(r[map.cat] || '').trim() : '';
       var ck = catRaw ? catByLabel[G.normName(catRaw)] : null;
       if (catRaw && !ck) unknownCats[catRaw] = (unknownCats[catRaw] || 0) + 1;
-      return { name: String(r[map.name]).trim().replace(/\s+/g, ' '), catRaw: catRaw, cat: ck, phone: map.phone != null ? String(r[map.phone] || '').trim() : '', email: map.email != null ? String(r[map.email] || '').trim() : '', nc: map.color != null ? ncFromText(r[map.color]) : null };
+      return { name: String(r[map.name]).trim().replace(/\s+/g, ' '), catRaw: catRaw, cat: ck, phone: map.phone != null ? String(r[map.phone] || '').trim() : '', email: map.email != null ? String(r[map.email] || '').trim() : '', nc: map.color != null ? ncFromText(r[map.color]) : null, title: map.title != null ? String(r[map.title] || '').trim().replace(/\s+/g, ' ') : '' };
     });
     pendingImport = { items: items, unknownCats: unknownCats, map: map };
-    var colNames = { name: 'الاسم', cat: 'الفئة', phone: 'الهاتف', email: 'البريد', color: 'لون الاسم' };
+    var colNames = { name: 'الاسم', title: 'المسمى الوظيفي', cat: 'الفئة', phone: 'الهاتف', email: 'البريد', color: 'لون الاسم' };
     var found = Object.keys(colNames).filter(function(k){ return map[k] != null; }).map(function(k){ return colNames[k]; }).join('، ');
     var uc = Object.keys(unknownCats);
     $('impPreview').innerHTML = '<div class="note">وُجد ' + items.length + ' اسماً. الأعمدة المقروءة: ' + esc(found) + '.' +
@@ -804,9 +809,10 @@ $('impPreview').addEventListener('click', function(e){
     if (seenNew[key]){ dup++; return; }
     seenNew[key] = 1;
     var ex = S.ev.people.find(function(p){ return G.normName(p.name) === nn && p.cat === cat; });
-    if (ex){ if (it.phone) ex.phone = it.phone; if (it.email) ex.email = it.email; if (it.nc) ex.nc = it.nc; updated++; return; }
+    if (ex){ if (it.phone) ex.phone = it.phone; if (it.email) ex.email = it.email; if (it.nc) ex.nc = it.nc; if (it.title) ex.title = it.title; updated++; return; }
     var np = newPerson({ id: G.nextId(S.ev, cat), name: it.name, cat: cat, phone: it.phone, email: it.email });
     if (it.nc) np.nc = it.nc;
+    if (it.title) np.title = it.title;
     S.ev.people.push(np);
     added++;
   });
@@ -833,6 +839,7 @@ function samplePerson(){
   var prefix = G.cat(S.ev, cat).prefix || 'A';
   var sp = { id: prefix + '001', name: nm, cat: cat, t: 'sample', ck: 'abc234' };
   if ($('dSampleNc').value) sp.nc = $('dSampleNc').value;
+  if ($('dSampleTitle').value.trim()) sp.title = $('dSampleTitle').value.trim();
   return sp;
 }
 function renderDesign(){
@@ -855,6 +862,7 @@ function renderDesign(){
 $('dSel').onchange = function(){ dKey = this.value; dPage = 0; dSelF = -1; renderDesign(); };
 $('dSample').addEventListener('input', function(){ clearTimeout(this.t); this.t = setTimeout(renderPreview, 250); });
 $('dSampleNc').addEventListener('change', renderPreview);
+$('dSampleTitle').addEventListener('input', function(){ clearTimeout(this.t); this.t = setTimeout(renderPreview, 250); });
 $('dOwnBox').addEventListener('click', function(e){
   if (e.target.id === 'dMakeOwn'){ S.ev.designs[dKey] = JSON.parse(JSON.stringify(S.ev.designs['*'])); changed(); renderDesign(); }
   if (e.target.id === 'dUseDef'){ delete S.ev.designs[dKey]; changed(); renderDesign(); }
@@ -964,6 +972,13 @@ function renderProps(){
     h += '<div><label>السماكة</label><select data-p="weight"' + dis + '><option value="700"' + (f.weight == 700 ? ' selected' : '') + '>عريض</option><option value="400"' + (f.weight == 400 ? ' selected' : '') + '>عادي</option></select></div>';
     h += '<div><label>اللون</label><input type="color" data-p="color" value="' + (/^#[0-9a-f]{6}$/i.test(f.color) ? f.color : '#111111') + '"' + dis + '>' + '<label class="row" style="margin-top:4px"><input type="checkbox" data-p="colorCat"' + (f.color === '{catColor}' ? ' checked' : '') + dis + '> لون الفئة</label></div>';
     h += '<div><label>المحاذاة</label><select data-p="align"' + dis + '><option value="center"' + (f.align === 'center' ? ' selected' : '') + '>وسط</option><option value="right"' + (f.align === 'right' ? ' selected' : '') + '>يمين</option><option value="left"' + (f.align === 'left' ? ' selected' : '') + '>يسار</option></select></div>';
+    if (f.type === 'name'){
+      h += '<div style="grid-column:1/-1;border-top:1px solid var(--line);padding-top:8px;font-weight:700">المسمى الوظيفي تحت الاسم</div>';
+      h += '<div><label>لونه</label><input type="color" data-p="titleColor" value="' + (/^#[0-9a-f]{6}$/i.test(f.titleColor || '') ? f.titleColor : '#ffffff') + '"' + dis + '><label class="row" style="margin-top:4px"><input type="checkbox" data-p="titleSame"' + (!f.titleColor ? ' checked' : '') + dis + '> مثل لون الاسم</label></div>';
+      h += '<div><label>حجمه نسبة للاسم</label><select data-p="titleScale"' + dis + '>' + [[0.45, 'صغير'], [0.55, 'متوسط'], [0.65, 'كبير']].map(function(o){ return '<option value="' + o[0] + '"' + ((f.titleScale || 0.55) === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
+      h += '<div><label>سماكته</label><select data-p="titleWeight"' + dis + '><option value="400"' + ((f.titleWeight || 400) == 400 ? ' selected' : '') + '>عادي</option><option value="700"' + (f.titleWeight == 700 ? ' selected' : '') + '>عريض</option></select></div>';
+      h += '<div style="grid-column:1/-1;border-top:1px solid var(--line)"></div>';
+    }
     h += '<div><label>الأسطر</label><select data-p="lines"' + dis + '><option value="1"' + ((f.lines || 1) == 1 ? ' selected' : '') + '>سطر واحد</option><option value="2"' + (f.lines == 2 ? ' selected' : '') + '>حتى سطرين</option></select></div>';
     h += '<div><label>خلفية المربع</label><select data-p="bgMode"' + dis + '><option value="none"' + (!f.bg ? ' selected' : '') + '>بلا</option><option value="cat"' + (f.bg === '{catColor}' ? ' selected' : '') + '>لون الفئة</option><option value="custom"' + (f.bg && f.bg !== '{catColor}' ? ' selected' : '') + '>لون محدد</option></select>' + (f.bg && f.bg !== '{catColor}' ? '<input type="color" data-p="bg" value="' + esc(f.bg) + '"' + dis + '>' : '') + '</div>';
   } else {
@@ -979,7 +994,8 @@ $('fProps').addEventListener('change', function(e){
   var v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
   if (p === 'colorCat'){ f.color = v ? '{catColor}' : '#111111'; }
   else if (p === 'bgMode'){ if (v === 'none') delete f.bg; else if (v === 'cat') f.bg = '{catColor}'; else f.bg = '#ffffff'; renderProps(); }
-  else if (p === 'weight' || p === 'lines' || p === 'radius' || p === 'quiet'){ f[p] = +v; }
+  else if (p === 'weight' || p === 'lines' || p === 'radius' || p === 'quiet' || p === 'titleScale' || p === 'titleWeight'){ f[p] = +v; }
+  else if (p === 'titleSame'){ if (v) delete f.titleColor; else f.titleColor = '#ffffff'; renderProps(); }
   else f[p] = v;
   changed(); renderPreview(); renderFieldList();
 });

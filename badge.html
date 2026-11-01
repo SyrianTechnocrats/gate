@@ -37,7 +37,7 @@ button.sec{background:#e2e8f0;color:var(--ink)}
   <div class="pages" id="pages"></div>
 </div>
 <script src="lib/qrcode.js"></script>
-<script src="lib/common.js?v=6"></script>
+<script src="lib/common.js?v=7"></script>
 <script>
 window.addEventListener('hashchange', function(){ location.reload(); });
 (async function(){
@@ -51,7 +51,7 @@ window.addEventListener('hashchange', function(){ location.reload(); });
     if (!p) return fail('لم نجد هذه الدعوة. ربما أُلغيت أو تغيّر الرابط؛ تواصل مع المنظمين.');
     var L = ev.docLabel || 'البطاقة';
     $('title').textContent = p.name;
-    $('sub').textContent = ev.name + (ev.days.length ? ' — ' + G.arDate(ev.days[0]) : '');
+    $('sub').textContent = (p.title ? p.title + ' — ' : '') + ev.name + (ev.days.length ? ' — ' + G.arDate(ev.days[0]) : '');
     document.title = L.replace(/^ال/, '') + ' ' + p.name;
     var qc = $('bigqr'); G.drawQR(qc.getContext('2d'), G.payload(ev, p), 0, 0, qc.width, { quiet: 3 });
     $('entry').style.display = 'block';

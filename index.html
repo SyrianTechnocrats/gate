@@ -166,7 +166,7 @@ h3{margin:4px 0 10px;font-size:17px}
 
 <script src="lib/jsQR.js"></script>
 <script src="lib/xlsx.mini.min.js"></script>
-<script src="lib/common.js?v=6"></script>
+<script src="lib/common.js?v=7"></script>
 <script>
 (function(){
 'use strict';
@@ -319,7 +319,7 @@ function handlePayload(data){
   lastSeen[id] = t;
   addRecord(p, 'مسح');
   var n = scansToday(id);
-  showResult(n > 1 ? 'warn' : 'ok', p.name, n > 1 ? 'مسجّل مسبقاً اليوم — هذا دخوله رقم ' + n : 'تم تسجيل الحضور ✓ ' + G.tstr(), G.cat(ev, p.cat));
+  showResult(n > 1 ? 'warn' : 'ok', p.name, (p.title ? p.title + ' — ' : '') + (n > 1 ? 'مسجّل مسبقاً اليوم — هذا دخوله رقم ' + n : 'تم تسجيل الحضور ✓ ' + G.tstr()), G.cat(ev, p.cat));
   flash(n > 1 ? '#d97706' : '#16a34a'); vib(n > 1 ? [60,40,60] : 90); beep(true);
 }
 
@@ -398,7 +398,7 @@ function renderManual(){
   var present = {}; records.forEach(function(r){ if (r.date === today) present[r.id] = 1; });
   var html = list.slice(0, 60).map(function(p){
     var c = G.cat(ev, p.cat);
-    return '<div class="it"><div class="grow"><div class="nm">' + G.esc(p.name) + '</div><div class="sub">' + G.esc(p.id) + ' <span class="chip" style="background:' + G.esc(c.color) + '">' + G.esc(c.label) + '</span></div></div>' +
+    return '<div class="it"><div class="grow"><div class="nm">' + G.esc(p.name) + '</div>' + (p.title ? '<div class="sub">' + G.esc(p.title) + '</div>' : '') + '<div class="sub">' + G.esc(p.id) + ' <span class="chip" style="background:' + G.esc(c.color) + '">' + G.esc(c.label) + '</span></div></div>' +
       (present[p.id] ? '<span class="done">حاضر ✓</span>' : '') + '<button class="btn sec" data-id="' + G.esc(p.id) + '">تسجيل</button></div>';
   }).join('');
   if (list.length > 60) html += '<div class="muted" style="padding:8px">' + (list.length - 60) + ' نتيجة أخرى — اكتب جزءاً أطول من الاسم</div>';
