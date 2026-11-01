@@ -67,14 +67,32 @@ progress{width:100%;height:14px}
 .sent{color:var(--ok);font-weight:700}
 dialog{border:0;border-radius:14px;padding:18px;max-width:520px;width:92%}
 dialog::backdrop{background:rgba(15,23,42,.5)}
+.gate{position:fixed;inset:0;background:#0f172a;z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+.gate.on{display:flex}
+.gbox{background:#fff;border-radius:18px;padding:22px;width:100%;max-width:400px}
+.gbox h2{margin:0 0 6px;font-size:20px}
+.gbox label{margin-top:10px}
+.gerr{color:var(--err);font-size:14px;min-height:22px;margin:8px 0}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:9px 16px;border-radius:10px;z-index:50;display:none}
 </style>
 </head>
 <body>
+<div id="gate" class="gate on"><form class="gbox" id="gForm">
+  <h2 id="gTitle">جارٍ التحميل…</h2>
+  <p class="mut" id="gText"></p>
+  <div id="gFields" style="display:none">
+    <label for="gUser">اسم المستخدم</label><input id="gUser" autocomplete="username" required>
+    <label for="gPass">كلمة السر</label><input id="gPass" type="password" autocomplete="current-password" required>
+    <div id="gConfirmBox" style="display:none"><label for="gPass2">تأكيد كلمة السر</label><input id="gPass2" type="password" autocomplete="new-password"></div>
+    <div class="gerr" id="gErr"></div>
+    <button class="btn" id="gBtn" style="width:100%">دخول</button>
+  </div>
+</form></div>
 <header>
   <h1 id="htitle">إدارة بوابة الحضور<small id="hsub"></small></h1>
   <span class="pill" id="dirty"></span>
   <a class="btn sec sm" href="./" target="_blank" rel="noopener">فتح تطبيق المسح</a>
+  <button class="btn sec sm" id="lockBtn" title="يغلق الصفحة ويطلب كلمة السر من جديد">قفل</button>
 </header>
 <nav class="tabs" id="tabs">
   <button class="on" data-t="event">الفعالية</button>
@@ -117,6 +135,19 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
     <h2>الفئات</h2>
     <div class="tblwrap" style="max-height:none"><table><thead><tr><th>الاسم</th><th>اللون</th><th>حرف المعرّف</th><th>عدد الأسماء</th><th></th></tr></thead><tbody id="catBody"></tbody></table></div>
     <div class="row" style="margin-top:10px"><button class="btn sec sm" id="catAdd">إضافة فئة</button></div>
+  </div>
+
+  <div class="card">
+    <h2>المستخدمون</h2>
+    <p class="mut">كل مستخدم يدخل باسمه وكلمة سره إلى صفحة الإدارة وإلى تطبيق المسح على هواتف الباب. التغييرات تسري بعد النشر.</p>
+    <div id="usrBox"></div>
+    <div class="row" style="margin-top:10px">
+      <input id="usrName" placeholder="اسم المستخدم" style="max-width:200px" autocomplete="off">
+      <input id="usrPass" type="password" placeholder="كلمة السر (٨ أحرف على الأقل)" style="max-width:260px" autocomplete="new-password">
+      <button class="btn sec sm" id="usrAdd">إضافة، أو تغيير كلمة سر مستخدم موجود</button>
+    </div>
+    <p class="mut">حذف مستخدم يمنعه من الدخول على أي جهاز جديد. أما جهاز سبق أن دخل منه فيبقى قادراً على قراءة القائمة حتى تغيّر مفتاح التشفير.</p>
+    <button class="btn red sm" id="usrRotate">تغيير مفتاح التشفير…</button>
   </div>
 
   <div class="card">
@@ -338,7 +369,8 @@ var DB = (function(){
 })();
 
 /* ---------- state ---------- */
-var S = null;               // { ev, msg, gh, publishedHash, publishedAt }
+var S = null;               // { ev, msg, gh, keyring, users, publishedHash, publishedAt }
+var K = null, ME = null;    // event key (raw bytes) and the signed-in user, in memory only
 var fileUrls = {};          // template path -> object URL (local, unpublished uploads)
 function resolve(src){ return fileUrls[src] || src; }
 
@@ -357,41 +389,113 @@ function guessGh(){
   return { owner: owner || 'SyrianTechnocrats', repo: repo || 'gate', branch: 'main' };
 }
 
+/* Plain (pre-encryption) view of what gets published; used to detect unpublished changes. */
 function publicEvent(ev){
   var e = JSON.parse(JSON.stringify(ev));
-  e.people = ev.people.map(function(p){ var o = { id: p.id, name: p.name, cat: p.cat, t: p.t }; if (p.nc) o.nc = p.nc; return o; });
-  delete e.updated;
+  e.people = ev.people.map(function(p){ var o = { id: p.id, name: p.name, cat: p.cat, t: p.t, ck: p.ck }; if (p.nc) o.nc = p.nc; return o; });
+  delete e.updated; delete e.secure;
   return e;
 }
-function pubHash(){ return JSON.stringify(publicEvent(S.ev)); }
+function pubHash(){ return JSON.stringify([publicEvent(S.ev), S.keyring, S.users]); }
+function newPerson(o){ o.t = G.token(16); o.ck = G.token(6); return o; }
 
-var saveT = null;
+var saveT = null, persistQ = Promise.resolve();
 function changed(){ clearTimeout(saveT); saveT = setTimeout(persist, 300); renderHeader(); }
-function persist(){ return DB.set('kv', 'state', S).catch(function(){ toast('تعذر الحفظ المحلي'); }); }
+/* Local data (including phones and emails) is stored encrypted with the event key. */
+function persist(){
+  if (!K || !S) return persistQ;
+  persistQ = persistQ.then(async function(){
+    var enc = await G.seal(K, JSON.stringify(S));
+    await DB.set('kv', 'state', { v: 2, keyring: S.keyring, enc: enc });
+  }).catch(function(){ toast('تعذر الحفظ المحلي'); });
+  return persistQ;
+}
 
-async function loadPublished(){
-  var ev = await G.loadEvent();
-  ev.people.forEach(function(p){ if (!p.t) p.t = G.token(); });
-  return ev;
+/* ---------- sign-in ---------- */
+function sessionGet(){ try { var k = sessionStorage.getItem('gate-admin:k'); return k ? { k: G.unb64(k), u: sessionStorage.getItem('gate-admin:u') } : null; } catch(e){ return null; } }
+function sessionSet(){ try { sessionStorage.setItem('gate-admin:k', G.b64(K)); sessionStorage.setItem('gate-admin:u', ME || ''); } catch(e){} }
+function gateErr(m){ $('gErr').textContent = m || ''; }
+function gatePrompt(mode, text){
+  return new Promise(function(resolve){
+    var setup = mode === 'setup';
+    $('gTitle').textContent = setup ? 'إعداد الحماية' : 'تسجيل الدخول';
+    $('gText').textContent = text || '';
+    $('gFields').style.display = '';
+    $('gConfirmBox').style.display = setup ? '' : 'none';
+    $('gPass2').required = setup;
+    $('gPass').setAttribute('autocomplete', setup ? 'new-password' : 'current-password');
+    $('gBtn').textContent = setup ? 'إنشاء الحساب' : 'دخول';
+    $('gBtn').disabled = false;
+    $('gate').classList.add('on');
+    setTimeout(function(){ ($('gUser').value ? $('gPass') : $('gUser')).focus(); }, 30);
+    $('gForm').onsubmit = function(e){ e.preventDefault(); $('gBtn').disabled = true; resolve({ u: $('gUser').value.trim(), p: $('gPass').value, p2: $('gPass2').value }); };
+  });
+}
+async function loadLocal(local2, published){
+  if (local2){
+    try { S = JSON.parse(await G.openText(K, local2.enc)); return true; } catch(e){}
+  }
+  if (published && G.isSecure(published)){
+    try {
+      var r = await G.decryptRoster(published, K);
+      var ev = G.normalizeEvent(JSON.parse(JSON.stringify(published)));
+      var sec = ev.secure; delete ev.secure; ev.people = r.people;
+      S = { ev: ev, msg: defaultMsg(), gh: guessGh(), keyring: sec.keyring, users: r.users || [], publishedHash: null, publishedAt: null };
+      S.publishedHash = pubHash();
+      return true;
+    } catch(e){}
+  }
+  return false;
 }
 
 async function init(){
-  S = await DB.get('kv', 'state').catch(function(){ return null; });
-  if (!S){
-    var ev;
-    try { ev = await loadPublished(); } catch(e){ ev = G.normalizeEvent({}); }
-    S = { ev: ev, msg: defaultMsg(), gh: guessGh(), publishedHash: null, publishedAt: null };
-    S.publishedHash = pubHash();
-    await persist();
+  var stored = await DB.get('kv', 'state').catch(function(){ return null; });
+  var published = null;
+  try { published = await G.loadEvent(); } catch(e){}
+  var local2 = stored && stored.v === 2 ? stored : null;
+  var legacy = stored && !stored.v && stored.ev ? stored : null;
+  var keyring = (local2 && local2.keyring && local2.keyring.length ? local2.keyring : null) || (G.isSecure(published) ? published.secure.keyring : null);
+  if (!keyring){
+    var c;
+    for (;;){
+      c = await gatePrompt('setup', 'أنشئ حساب المدير الأول. كلمة السر تفتح قائمة المدعوين المشفّرة ولا يمكن استرجاعها إن نُسيت، فاحفظها في مكان آمن. يمكنك إضافة مستخدمين آخرين لاحقاً.');
+      if (c.u.length < 3){ gateErr('اسم المستخدم ٣ أحرف على الأقل'); continue; }
+      if (c.p.length < 8){ gateErr('كلمة السر ٨ أحرف على الأقل'); continue; }
+      if (c.p !== c.p2){ gateErr('كلمتا السر غير متطابقتين'); continue; }
+      break;
+    }
+    gateErr('جارٍ الإعداد…');
+    K = G.rand(32); ME = c.u;
+    S = legacy || { ev: published || G.normalizeEvent({}), msg: defaultMsg(), gh: guessGh(), publishedHash: null, publishedAt: null };
+    delete S.ev.secure;
+    S.keyring = [await G.wrapKey(K, c.u, c.p)];
+    S.users = [c.u];
+  } else {
+    var sk = sessionGet();
+    if (sk){ K = sk.k; ME = sk.u; if (!(await loadLocal(local2, published))) K = null; }
+    while (!K){
+      var l = await gatePrompt('login', 'قائمة المدعوين مشفّرة. ادخل بحسابك لفتح صفحة الإدارة.');
+      gateErr('جارٍ التحقق…');
+      try { K = await G.unwrapKey(keyring, l.u, l.p); ME = l.u; }
+      catch(e){ gateErr('اسم المستخدم أو كلمة السر غير صحيحة'); continue; }
+      if (!(await loadLocal(local2, published))){ K = null; gateErr('تعذر فتح البيانات بهذا الحساب'); }
+    }
   }
+  $('gPass').value = ''; $('gPass2').value = '';
+  sessionSet();
   S.ev = G.normalizeEvent(S.ev);
   S.msg = Object.assign(defaultMsg(), S.msg || {});
   S.gh = Object.assign(guessGh(), S.gh || {});
+  S.users = S.users || [];
+  S.ev.people.forEach(function(p){ if (!p.t) p.t = G.token(16); if (!p.ck) p.ck = G.token(6); });
+  await persist();
   var keys = await DB.keys('files').catch(function(){ return []; });
   for (var i = 0; i < keys.length; i++){ var b = await DB.get('files', keys[i]); if (b) fileUrls[keys[i]] = URL.createObjectURL(b); }
   await G.fontsReady();
+  $('gate').classList.remove('on');
   renderAll();
 }
+$('lockBtn').onclick = function(){ try { sessionStorage.removeItem('gate-admin:k'); sessionStorage.removeItem('gate-admin:u'); } catch(e){} location.reload(); };
 
 /* ---------- header & tabs ---------- */
 function renderHeader(){
@@ -439,6 +543,9 @@ function renderEvent(){
   $('evLabel').value = ev.docLabel; $('evName').value = ev.name; $('evOrg').value = ev.org; $('evCode').value = ev.code; $('evCool').value = ev.cooldownSec;
   $('bW').value = ev.badge.w; $('bH').value = ev.badge.h; $('bB').value = ev.badge.bleed; $('evSync').value = ev.syncUrl;
   $('daysBox').innerHTML = ev.days.map(function(d, i){ return '<span class="counts" style="margin:0"><span>' + esc(G.arDate(d)) + ' <a href="#" data-dday="' + i + '" style="color:var(--err)">✕</a></span></span>'; }).join('') || '<span class="mut">لم تُحدد أيام بعد</span>';
+  $('usrBox').innerHTML = S.users.map(function(u, i){
+    return '<div class="row" style="margin-bottom:6px"><span class="counts" style="margin:0"><span>' + esc(u) + (u === ME ? ' (أنت)' : '') + '</span></span>' + (u === ME ? '' : '<button class="btn red sm" data-udel="' + i + '">حذف</button>') + '</div>';
+  }).join('');
   $('ncBox').innerHTML = ev.nameColors.map(function(c, i){
     return '<div class="row" style="margin-bottom:6px"><input data-nci="' + i + '" data-k="label" value="' + esc(c.label) + '" style="max-width:180px"><input type="color" data-nci="' + i + '" data-k="color" value="' + esc(c.color) + '" style="width:60px"><span class="mut">' + ev.people.filter(function(p){ return p.nc === c.key; }).length + ' اسم</span><button class="btn red sm" data-ncdel="' + i + '">حذف</button></div>';
   }).join('') || '<span class="mut">لا ألوان — كل الأسماء بلون التصميم</span>';
@@ -487,6 +594,36 @@ $('ncBox').addEventListener('click', function(e){
   S.ev.people.forEach(function(p){ if (p.nc === c.key) delete p.nc; });
   S.ev.nameColors.splice(+b.dataset.ncdel, 1); changed(); renderEvent();
 });
+$('usrAdd').onclick = async function(){
+  var u = $('usrName').value.trim(), p = $('usrPass').value;
+  if (u.length < 3){ toast('اسم المستخدم ٣ أحرف على الأقل'); return; }
+  if (p.length < 8){ toast('كلمة السر ٨ أحرف على الأقل'); return; }
+  this.disabled = true;
+  var w = await G.wrapKey(K, u, p);
+  S.keyring = S.keyring.filter(function(x){ return x.h !== w.h; }).concat([w]);
+  var exists = S.users.some(function(x){ return x.toLowerCase() === u.toLowerCase(); });
+  if (!exists) S.users.push(u);
+  $('usrName').value = ''; $('usrPass').value = ''; this.disabled = false;
+  changed(); renderEvent(); toast(exists ? 'تغيّرت كلمة سر ' + u + ' — انشر لتسري' : 'أُضيف ' + u + ' — انشر ليتمكن من الدخول');
+};
+$('usrBox').addEventListener('click', async function(e){
+  var b = e.target.closest('[data-udel]'); if (!b) return;
+  var u = S.users[+b.dataset.udel];
+  if (!await ask('<p>حذف المستخدم <b>' + esc(u) + '</b>؟</p>', 'حذف')) return;
+  var h = await G.userHash(u);
+  S.keyring = S.keyring.filter(function(x){ return x.h !== h; });
+  S.users = S.users.filter(function(x){ return x !== u; });
+  changed(); renderEvent();
+});
+$('usrRotate').onclick = async function(){
+  var f = await ask('<h3 style="margin-top:0">تغيير مفتاح التشفير</h3><p>يُنشأ مفتاح جديد، فلا يقرأ القائمة بعد النشر إلا من تضيفهم من جديد. يبقى حسابك وحده، ثم تضيف بقية المستخدمين بكلمات سر.</p><label>كلمة سرك للتأكيد</label><input name="p" type="password" required autocomplete="current-password">', 'تغيير المفتاح');
+  if (!f) return;
+  try { await G.unwrapKey(S.keyring, ME, f.p.value); } catch(e){ toast('كلمة السر غير صحيحة'); return; }
+  K = G.rand(32);
+  S.keyring = [await G.wrapKey(K, ME, f.p.value)];
+  S.users = [ME];
+  sessionSet(); changed(); renderEvent(); toast('تغيّر المفتاح — أضف المستخدمين ثم انشر');
+};
 $('ncAdd').onclick = function(){ S.ev.nameColors.push({ key: 'n' + G.token(4), label: 'لون جديد', color: '#facc15' }); changed(); renderEvent(); };
 $('catAdd').onclick = function(){
   var used = S.ev.categories.map(function(c){ return c.prefix; });
@@ -508,7 +645,7 @@ $('newEvent').onclick = async function(){
   S.ev.name = f.n.value.trim() || 'فعالية'; S.ev.code = code; S.ev.days = f.d.value ? [f.d.value] : [];
   if (!f.keepD.checked){ S.ev.designs = {}; }
   if (!f.keepP.checked){ S.ev.people = []; S.ev.counters = {}; }
-  else { S.ev.people.forEach(function(p){ p.t = G.token(); delete p.sent; }); }
+  else { S.ev.people.forEach(function(p){ newPerson(p); delete p.sent; }); }
   S.ev = G.normalizeEvent(S.ev);
   changed(); renderAll(); toast('بدأت فعالية جديدة — لا تنسَ النشر');
 };
@@ -575,7 +712,7 @@ $('addBtn').onclick = function(){
   var n = $('addName').value.trim().replace(/\s+/g, ' '); if (!n){ $('addName').focus(); return; }
   var cat = $('addCat').value;
   if (S.ev.people.some(function(p){ return G.normName(p.name) === G.normName(n) && p.cat === cat; })){ toast('هذا الاسم موجود في الفئة نفسها'); return; }
-  var np = { id: G.nextId(S.ev, cat), name: n, cat: cat, t: G.token(), phone: $('addPhone').value.trim(), email: $('addEmail').value.trim() };
+  var np = newPerson({ id: G.nextId(S.ev, cat), name: n, cat: cat, phone: $('addPhone').value.trim(), email: $('addEmail').value.trim() });
   if ($('addNc').value) np.nc = $('addNc').value;
   S.ev.people.push(np);
   $('addName').value = ''; $('addPhone').value = ''; $('addEmail').value = '';
@@ -668,7 +805,7 @@ $('impPreview').addEventListener('click', function(e){
     seenNew[key] = 1;
     var ex = S.ev.people.find(function(p){ return G.normName(p.name) === nn && p.cat === cat; });
     if (ex){ if (it.phone) ex.phone = it.phone; if (it.email) ex.email = it.email; if (it.nc) ex.nc = it.nc; updated++; return; }
-    var np = { id: G.nextId(S.ev, cat), name: it.name, cat: cat, t: G.token(), phone: it.phone, email: it.email };
+    var np = newPerson({ id: G.nextId(S.ev, cat), name: it.name, cat: cat, phone: it.phone, email: it.email });
     if (it.nc) np.nc = it.nc;
     S.ev.people.push(np);
     added++;
@@ -694,7 +831,7 @@ function samplePerson(){
     nm = pool.reduce(function(a, p){ return p.name.length > a.length ? p.name : a; }, '') || 'محمد عبد الرحمن الأحمد';
   }
   var prefix = G.cat(S.ev, cat).prefix || 'A';
-  var sp = { id: prefix + '001', name: nm, cat: cat, t: 'sample' };
+  var sp = { id: prefix + '001', name: nm, cat: cat, t: 'sample', ck: 'abc234' };
   if ($('dSampleNc').value) sp.nc = $('dSampleNc').value;
   return sp;
 }
@@ -1088,8 +1225,8 @@ function renderPublish(){
   var dirty = pubHash() !== S.publishedHash;
   $('pubState').innerHTML = dirty ? '<div class="warnbox">لديك تغييرات محلية لم تُنشر بعد. الهواتف وروابط البطاقات ترى آخر نسخة منشورة فقط.</div>' : '<div class="note">النسخة المحلية مطابقة للمنشورة' + (S.publishedAt ? ' (آخر نشر ' + new Date(S.publishedAt).toLocaleString('ar-SY') + ')' : '') + '.</div>';
   $('ghOwner').value = S.gh.owner; $('ghRepo').value = S.gh.repo; $('ghBranch').value = S.gh.branch;
-  var t = ''; try { t = localStorage.getItem('gate-admin:ghToken') || ''; } catch(e){}
-  if (t && !$('ghToken').value){ $('ghToken').value = t; $('ghRemember').checked = true; }
+  var t = ''; try { localStorage.removeItem('gate-admin:ghToken'); t = localStorage.getItem('gate-admin:ghTokenEnc') || ''; } catch(e){}
+  if (t && !$('ghToken').value){ G.openText(K, t).then(function(v){ if (!$('ghToken').value){ $('ghToken').value = v; $('ghRemember').checked = true; } }).catch(function(){}); }
 }
 ['ghOwner', 'ghRepo', 'ghBranch'].forEach(function(id){ $(id).addEventListener('change', function(){ S.gh[{ ghOwner: 'owner', ghRepo: 'repo', ghBranch: 'branch' }[id]] = this.value.trim(); changed(); }); });
 function referencedTemplates(){
@@ -1097,7 +1234,14 @@ function referencedTemplates(){
   Object.keys(S.ev.designs).forEach(function(k){ (S.ev.designs[k].pages || []).forEach(function(p){ if (p.src) set[p.src] = 1; }); });
   return Object.keys(set);
 }
-function eventJsonText(){ var e = publicEvent(S.ev); e.updated = new Date().toISOString(); return JSON.stringify(e, null, 1); }
+/* What is published: settings and designs in clear; names, IDs, check codes and links only encrypted. */
+async function eventJsonText(){
+  var e = publicEvent(S.ev), people = e.people;
+  e.people = [];
+  e.secure = await G.buildSecure(K, S.keyring, people, S.users);
+  e.updated = new Date().toISOString();
+  return JSON.stringify(e);
+}
 function b64(blob){ return new Promise(function(res, rej){ var r = new FileReader(); r.onload = function(){ res(String(r.result).split(',')[1]); }; r.onerror = rej; r.readAsDataURL(blob); }); }
 async function templateBlob(path){
   var b = await DB.get('files', path); if (b) return b;
@@ -1106,7 +1250,7 @@ async function templateBlob(path){
 $('pubBtn').onclick = async function(){
   var token = $('ghToken').value.trim(), o = S.gh.owner, r = S.gh.repo, br = S.gh.branch || 'main';
   if (!token){ toast('أدخل رمز الوصول'); $('ghToken').focus(); return; }
-  try { if ($('ghRemember').checked) localStorage.setItem('gate-admin:ghToken', token); else localStorage.removeItem('gate-admin:ghToken'); } catch(e){}
+  try { if ($('ghRemember').checked) localStorage.setItem('gate-admin:ghTokenEnc', await G.seal(K, token)); else localStorage.removeItem('gate-admin:ghTokenEnc'); } catch(e){}
   var log = $('pubLog'); log.textContent = '';
   var say = function(t){ log.textContent += t + '\n'; };
   async function gh(path, opt){
@@ -1126,7 +1270,8 @@ $('pubBtn').onclick = async function(){
     var tree = await gh(base + '/git/trees/' + commit.tree.sha + '?recursive=1');
     var existing = {}; tree.tree.forEach(function(t){ if (t.type === 'blob') existing[t.path] = t.sha; });
     var entries = [];
-    var evBlob = await gh(base + '/git/blobs', { method: 'POST', body: { content: eventJsonText(), encoding: 'utf-8' } });
+    say('تشفير القائمة…');
+    var evBlob = await gh(base + '/git/blobs', { method: 'POST', body: { content: await eventJsonText(), encoding: 'utf-8' } });
     entries.push({ path: 'event.json', mode: '100644', type: 'blob', sha: evBlob.sha });
     var refs = referencedTemplates(), up = 0, rm = 0;
     for (var i = 0; i < refs.length; i++){
@@ -1148,7 +1293,7 @@ $('pubBtn').onclick = async function(){
   this.disabled = false;
 };
 $('pubZip').onclick = async function(){
-  var zip = new JSZip(); zip.file('event.json', eventJsonText());
+  var zip = new JSZip(); zip.file('event.json', await eventJsonText());
   var refs = referencedTemplates();
   for (var i = 0; i < refs.length; i++){ try { zip.file(refs[i], await templateBlob(refs[i])); } catch(e){ toast(e.message); } }
   download(await zip.generateAsync({ type: 'blob' }), 'ملفات النشر ' + S.ev.code + '.zip');
@@ -1157,7 +1302,12 @@ $('pubZip').onclick = async function(){
 $('pullBtn').onclick = async function(){
   var f = await ask('<p>تحميل آخر نسخة منشورة واستبدال البيانات المحلية بها؟ تبقى الهواتف والبريد المحفوظة هنا.</p>', 'تحميل'); if (!f) return;
   try {
-    var ev = await loadPublished(), old = {};
+    var ev = await G.loadEvent(), old = {};
+    if (G.isSecure(ev)){
+      var r;
+      try { r = await G.decryptRoster(ev, K); } catch(x){ toast('النسخة المنشورة مشفّرة بمفتاح آخر ولا يفتحها حسابك'); return; }
+      S.keyring = ev.secure.keyring; S.users = r.users || []; ev.people = r.people; delete ev.secure;
+    } else { ev.people.forEach(function(p){ if (!p.t) p.t = G.token(16); if (!p.ck) p.ck = G.token(6); }); }
     S.ev.people.forEach(function(p){ old[p.id] = p; });
     ev.people.forEach(function(p){ var o = old[p.id]; if (o){ p.phone = o.phone; p.email = o.email; p.sent = o.sent; } });
     S.ev = ev; S.publishedHash = pubHash(); changed(); renderAll(); toast('تم التحميل: ' + ev.people.length + ' اسم');
@@ -1166,7 +1316,7 @@ $('pullBtn').onclick = async function(){
 
 window.addEventListener('beforeunload', function(e){ if (S && pubHash() !== S.publishedHash){ e.preventDefault(); e.returnValue = ''; } });
 await init();
-window.__admin = { get S(){ return S; }, buildPdf: buildPdf, resolve: resolve, renderAll: renderAll };
+window.__admin = { get S(){ return S; }, get me(){ return ME; }, buildPdf: buildPdf, resolve: resolve, renderAll: renderAll };
 })();
 </script>
 </body>

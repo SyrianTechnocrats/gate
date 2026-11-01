@@ -70,6 +70,11 @@ label{font-size:13px;color:var(--mut);display:block;margin:8px 0 4px}
 h3{margin:4px 0 10px;font-size:17px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
 .kv span{color:var(--mut)}
+#login{position:fixed;inset:0;background:var(--hdr);z-index:25;display:none;align-items:center;justify-content:center;padding:20px}
+#login.on{display:flex}
+#login .box{background:#fff;border-radius:18px;padding:20px;width:100%;max-width:380px}
+#login h2{margin:0 0 4px;font-size:19px}
+.err{color:var(--err);font-size:14px;min-height:20px;margin-top:8px}
 #toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:8px 14px;border-radius:10px;font-size:14px;z-index:30;display:none}
 </style>
 </head>
@@ -135,6 +140,15 @@ h3{margin:4px 0 10px;font-size:17px}
   <button data-pane="export"><b>📤</b>التصدير</button>
 </nav>
 
+<div id="login"><form class="box" id="loginForm" autocomplete="on">
+  <h2 id="loginTitle">تسجيل الدخول</h2>
+  <div class="muted">قائمة المدعوين مشفّرة. أدخل حسابك مرة واحدة على هذا الجهاز ليعمل المسح دون إنترنت.</div>
+  <label for="lu">اسم المستخدم</label><input id="lu" autocomplete="username" required>
+  <label for="lp">كلمة السر</label><input id="lp" type="password" autocomplete="current-password" required>
+  <div class="err" id="lerr"></div>
+  <button class="btn" style="width:100%;margin-top:6px" id="lbtn">دخول</button>
+</form></div>
+
 <div id="modal"><div class="sheet">
   <h3>الإعدادات</h3>
   <div class="card kv" id="evinfo"></div>
@@ -143,6 +157,7 @@ h3{margin:4px 0 10px;font-size:17px}
   <div class="row"><input id="devname" class="grow" maxlength="30"><button class="btn sec" id="savedev">حفظ</button></div>
   <label for="syncurl">رابط المزامنة (يُترك فارغاً لاستخدام رابط الفعالية)</label>
   <div class="row"><input id="syncurl" class="grow" dir="ltr" placeholder=""><button class="btn sec" id="saveurl">حفظ الرابط</button></div>
+  <div class="row" style="margin-top:12px"><button class="btn sec grow" id="logoutbtn" style="display:none">تسجيل الخروج من هذا الجهاز</button></div>
   <div class="row" style="margin-top:16px"><button class="btn red grow" id="wipebtn">🗑 مسح كل سجلات هذا الجهاز لهذه الفعالية</button></div>
   <div class="row" style="margin-top:10px"><button class="btn sec grow" id="closebtn">إغلاق</button></div>
   <div class="muted" style="margin-top:10px;text-align:center" id="ver"></div>
@@ -208,18 +223,53 @@ function setEvent(e){
   refreshAll();
 }
 
-function initEvent(){
+/* Encrypted events: the roster is decrypted with the event key stored on this device after login. */
+var pendingEv = null;
+async function prepare(raw){
+  var e = G.normalizeEvent(JSON.parse(JSON.stringify(raw)));
+  if (!G.isSecure(e)) return e;
+  var k = load('gate:k', null);
+  if (k){
+    try { e.people = (await G.decryptRoster(e, G.unb64(k))).people; return e; } catch(x){}
+  }
+  return null;
+}
+async function apply(raw){
+  var e = await prepare(raw);
+  if (e){ $('login').classList.remove('on'); setEvent(e); return true; }
+  pendingEv = raw; showLogin(); return false;
+}
+function showLogin(){
+  $('evname').textContent = pendingEv && pendingEv.name || 'بوابة الحضور';
+  $('evsub').textContent = 'بانتظار تسجيل الدخول';
+  $('lerr').textContent = ''; $('login').classList.add('on');
+  setTimeout(function(){ $('lu').focus(); }, 50);
+}
+$('loginForm').onsubmit = async function(e){
+  e.preventDefault();
+  if (!pendingEv) return;
+  $('lbtn').disabled = true; $('lbtn').textContent = 'جارٍ التحقق…'; $('lerr').textContent = '';
+  try {
+    var K = await G.unwrapKey(pendingEv.secure.keyring, $('lu').value, $('lp').value);
+    save('gate:k', G.b64(K)); save('gate:user', $('lu').value.trim());
+    $('lp').value = '';
+    await apply(pendingEv);
+  } catch(x){ $('lerr').textContent = 'اسم المستخدم أو كلمة السر غير صحيحة'; }
+  $('lbtn').disabled = false; $('lbtn').textContent = 'دخول';
+};
+async function initEvent(){
   var cached = load('gate:event', null);
-  if (cached) setEvent(G.normalizeEvent(cached));
-  return G.loadEvent().then(function(e){
+  if (cached) await apply(cached);
+  try {
+    var e = await G.loadEvent();
     var changed = !cached || JSON.stringify(cached) !== JSON.stringify(e);
     save('gate:event', e);
-    if (changed) setEvent(e);
+    if (changed || !ev) await apply(e);
     return true;
-  }).catch(function(){
+  } catch(x){
     if (!cached){ $('evsub').textContent = 'تعذر تحميل بيانات الفعالية — اتصل بالإنترنت مرة واحدة على الأقل'; }
     return false;
-  });
+  }
 }
 
 /* ---------- feedback ---------- */
@@ -263,6 +313,7 @@ function handlePayload(data){
   }
   var id = parts[1], p = byId[id];
   if (!p){ showResult('err', 'غير موجود في القائمة', 'المعرف ' + id + ' غير مسجل — حدّث بيانات الفعالية'); flash('#dc2626'); vib([80,60,80]); beep(false); return; }
+  if (p.ck && parts[2] !== p.ck){ showResult('err', 'رمز غير صالح', 'رمز التحقق لا يطابق دعوة ' + id + ' — قد تكون نسخة قديمة أو مزوّرة'); flash('#dc2626'); vib([80,60,80]); beep(false); return; }
   var t = Date.now();
   if (lastSeen[id] && t - lastSeen[id] < ev.cooldownSec * 1000){ showResult('warn', p.name, 'تم تسجيله قبل لحظات ✓', G.cat(ev, p.cat)); return; }
   lastSeen[id] = t;
@@ -498,6 +549,9 @@ function openSettings(){
   $('syncurl').value = syncOverride; $('syncurl').placeholder = ev && ev.syncUrl ? 'رابط الفعالية مستخدم' : '';
   $('evinfo').innerHTML = ev ? '<span>الفعالية</span><b>' + G.esc(ev.name) + '</b><span>الرمز</span><b>' + G.esc(ev.code) + '</b><span>الأيام</span><b>' + (ev.days.join('، ') || '—') + '</b><span>عدد الأسماء</span><b>' + ev.people.length + '</b><span>سجلات الجهاز</span><b>' + records.length + '</b>' : '<span>الفعالية</span><b>غير محمّلة</b>';
   $('ver').textContent = 'الإصدار ' + G.VERSION;
+  var u = load('gate:user', null);
+  $('logoutbtn').style.display = load('gate:k', null) ? '' : 'none';
+  $('logoutbtn').textContent = 'تسجيل الخروج من هذا الجهاز' + (u ? ' (' + u + ')' : '');
   $('modal').classList.add('on');
 }
 $('setbtn').onclick = openSettings;
@@ -505,7 +559,12 @@ $('closebtn').onclick = function(){ $('modal').classList.remove('on'); };
 $('modal').onclick = function(e){ if (e.target === this) this.classList.remove('on'); };
 $('savedev').onclick = function(){ var v = $('devname').value.trim(); if (!v) return; deviceName = v; save('gate:device', v); toast('تم الحفظ'); };
 $('saveurl').onclick = function(){ syncOverride = $('syncurl').value.trim(); save('gate:syncurl', syncOverride); updateSyncUI(); toast('تم الحفظ'); syncNow(); };
-$('reloadev').onclick = function(){ initEvent().then(function(ok){ toast(ok ? 'تم تحديث بيانات الفعالية (' + ev.people.length + ' اسم)' : 'تعذر التحديث — تحقق من الإنترنت'); openSettings(); }); };
+$('reloadev').onclick = function(){ initEvent().then(function(ok){ toast(ok ? 'تم تحديث بيانات الفعالية (' + (ev ? ev.people.length : 0) + ' اسم)' : 'تعذر التحديث — تحقق من الإنترنت'); openSettings(); }); };
+$('logoutbtn').onclick = function(){
+  var n = unsyncedCount();
+  if (!confirm('سيُحذف مفتاح فك التشفير من هذا الجهاز ويلزم تسجيل الدخول من جديد.' + (n ? ' تبقى سجلات المسح (' + n + ' غير مرفوع) محفوظة.' : '') + ' متابعة؟')) return;
+  localStorage.removeItem('gate:k'); localStorage.removeItem('gate:user'); location.reload();
+};
 $('wipebtn').onclick = function(){
   if (!ev) return;
   var n = unsyncedCount();

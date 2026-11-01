@@ -2,7 +2,7 @@
    v5: event.json and pages are NETWORK-FIRST (fall back to cache offline), so a
    republished name list reaches installed phones automatically when online.
    Libraries and fonts are cache-first. Old caches (including Biomedica v4) are removed. */
-var CACHE = 'gate-v5';
+var CACHE = 'gate-v6';
 var SHELL = [
   './', 'index.html', 'event.json', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png',
   'lib/common.js', 'lib/jsQR.js', 'lib/xlsx.mini.min.js', 'lib/qrcode.js', 'lib/fonts.css',

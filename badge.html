@@ -47,7 +47,7 @@ window.addEventListener('hashchange', function(){ location.reload(); });
   if (!m) return fail('الرابط غير مكتمل. تأكد من فتح الرابط كما وصلك.');
   try {
     var ev = await G.loadEvent();
-    var p = ev.people.find(function(x){ return x.t === m[1]; });
+    var p = G.isSecure(ev) ? await G.openInvite(ev, m[1]).catch(function(){ return null; }) : ev.people.find(function(x){ return x.t === m[1]; });
     if (!p) return fail('لم نجد هذه الدعوة. ربما أُلغيت أو تغيّر الرابط؛ تواصل مع المنظمين.');
     var L = ev.docLabel || 'البطاقة';
     $('title').textContent = p.name;
