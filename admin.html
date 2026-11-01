@@ -309,7 +309,7 @@ dialog::backdrop{background:rgba(15,23,42,.5)}
       <div><label>الحساب</label><input id="ghOwner" dir="ltr"></div>
       <div><label>المستودع</label><input id="ghRepo" dir="ltr"></div>
       <div><label>الفرع</label><input id="ghBranch" dir="ltr"></div>
-      <div><label>رمز الوصول</label><input id="ghToken" type="password" dir="ltr" autocomplete="off"></div>
+      <div><label>رمز الوصول من جيت هب (ليس كلمة سر الصفحة)</label><input id="ghToken" type="text" name="gh-pat" dir="ltr" autocomplete="off" spellcheck="false" data-1p-ignore data-lpignore="true" placeholder="github_pat_…" style="-webkit-text-security:disc"></div>
     </div>
     <label class="row" style="margin-top:8px"><input type="checkbox" id="ghRemember"> تذكّر رمز الوصول على هذا الجهاز</label>
     <details class="mut" style="margin:8px 0"><summary>كيف أحصل على رمز الوصول؟</summary>
@@ -1250,6 +1250,10 @@ async function templateBlob(path){
 $('pubBtn').onclick = async function(){
   var token = $('ghToken').value.trim(), o = S.gh.owner, r = S.gh.repo, br = S.gh.branch || 'main';
   if (!token){ toast('أدخل رمز الوصول'); $('ghToken').focus(); return; }
+  if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(token)){
+    $('pubLog').textContent = 'هذا ليس رمز وصول من جيت هب. الرمز يُنشأ من إعدادات حسابك في جيت هب ويبدأ بالحروف github_pat_ ، وهو غير اسم المستخدم وكلمة السر الخاصين بهذه الصفحة.';
+    $('ghToken').value = ''; $('ghToken').focus(); return;
+  }
   try { if ($('ghRemember').checked) localStorage.setItem('gate-admin:ghTokenEnc', await G.seal(K, token)); else localStorage.removeItem('gate-admin:ghTokenEnc'); } catch(e){}
   var log = $('pubLog'); log.textContent = '';
   var say = function(t){ log.textContent += t + '\n'; };
